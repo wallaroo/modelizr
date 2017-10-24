@@ -2,7 +2,7 @@
 import merge from "lodash.merge"
 import OrmDriver from "./OrmDriver";
 export type AttrType = {
-
+    type:"number"|"string"|"boolean"|Class<Model>|[Class<Model>]
 }
 export type AttrTypes = {[string]:AttrType}
 
