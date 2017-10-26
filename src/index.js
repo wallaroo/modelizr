@@ -1,7 +1,7 @@
 // @flow
 import merge from "lodash.merge"
 import type {OrmDriver} from "./OrmDriver";
-
+import {Subject} from "rxjs/Subject";
 export type Field = number|string|boolean|null|Model|Field[];
 export type AttrType = {
     type:"number"|"string"|"boolean"|Class<Model>|[Class<Model>],
@@ -24,25 +24,52 @@ export default class Model{
     static _attrTypes:AttrTypes = {};
     static idAttribute:string = "id";
 
-    static get attrTypes():AttrTypes{
-        if (this.superclass.attrTypes) {
-            return merge({}, this.superclass.attrTypes, this._attrTypes);
+    static getAttrTypes():AttrTypes{
+        const superClass = this.getSuperClass();
+        if (Model.isPrototypeOf(superClass)) {
+            // $FlowFixMe
+            return merge({}, superClass.getAttrTypes(), this._attrTypes);
         }
         else {
             return this._attrTypes;
         }
     }
 
-    static get superclass(){
+    static getSuperClass(){
         return Object.getPrototypeOf(this);
     }
 
-    get class():Class<Model>{
+    cid:Cid;
+    _subject = new Subject();
+
+    constructor<T:Model>(properties?:{[string]:Field}){
+        const id = properties && properties[this.getClass().idAttribute];
+        if(id && (typeof id === "number" || typeof id === "string")){
+            let oldCid = this.getClass()._ormDriver.getCidById(this, id);
+            this.cid=oldCid || new Cid();
+        }else{
+            this.cid=new Cid();
+        }
+
+        let defaults = {};
+        for(let prop of Object.keys(this.getClass().getAttrTypes())){
+            let attrType = this.getClass().getAttrTypes()[prop];
+            if (attrType.default)
+                defaults[prop] = attrType.default;
+        }
+        this.getClass()._ormDriver.set(this, Object.assign(defaults,properties));
+    }
+
+    onChange(handler:(value:string)=>void){
+        return this._subject.subscribe(handler)
+    }
+
+    getClass():Class<Model>{
         return this.constructor;
     }
 
-    get id():string|number|null{
-        const res = this.get(this.class.idAttribute);
+    getId():string|number|null{
+        const res = this.get(this.getClass().idAttribute);
         if (res!==null
             && typeof res !== "number"
             && typeof res !== "string"){
@@ -51,30 +78,24 @@ export default class Model{
         }
         return res;
     }
-
-    constructor<T:Model>(properties?:{[$Keys<T>]:Field}){
-        let defaults = {};
-        for(let prop of Object.keys(this.class.attrTypes)){
-            let attrType = this.class.attrTypes[prop];
-            if (attrType.default)
-                defaults[prop] = attrType.default;
-        }
-        this.class._ormDriver.set(this, Object.assign(defaults,properties));
+    setId(id:string|number):Model{
+        this.set({[this.getClass().idAttribute]:id});
+        return this;
     }
 
-    cid = new Cid();
+
     /**
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
      */
-    set<T:Model>(setHash: {[$Keys<T>]:Field}): Model{
-        return this.class._ormDriver.set(this, setHash);
+    async set<T:Model>(setHash: {[string]:Field}): Promise<Model>{
+        return this.getClass()._ormDriver.set(this, setHash);
     }
 
     /**
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    get<T:Model>(key?: string): Field|{ [$Keys<T>]: Field }{
-        return this.class._ormDriver.get(this, key);
+    async get<T:Model>(key?: string): Promise<Field|{ [string]: Field }>{
+        return this.getClass()._ormDriver.get(this, key);
     }
 }

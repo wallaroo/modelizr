@@ -10,13 +10,28 @@ class TestModel extends Model{
     property="default"
 }
 test("model type",()=>{
-    expect(TestModel.attrTypes["property"]).toBeTruthy();
+    expect(TestModel.getAttrTypes()["property"]).toBeTruthy();
 });
 
-test("model set",()=>{
+test("model set",async ()=>{
     let model = new TestModel();
-    expect(model.cid )
-    expect(model.get("property")).toBe("default");
-    expect(model.set({property:"value"})).toBeInstanceOf(Model);
-    expect(model.get("property")).toBe("value")
+    expect(model.cid );
+    expect(await model.get("property")).toBe("default");
+    expect(await model.set({property:"value"})).toBeInstanceOf(Model);
+    expect(await model.get("property")).toBe("value")
+});
+
+
+test("onchange",async ()=>{
+    let model = new TestModel();
+    let handler = jest.fn((value)=>expect(value).toBe("pippo"));
+
+    let subscription = model.onChange(handler);
+    expect(subscription).toBeInstanceOf(Object);
+    expect(await model.set({property:"value"})).toBeInstanceOf(Model);
+    model._subject.next("pippo");
+    expect(handler).toHaveBeenCalledTimes(1);
+    subscription.unsubscribe();
+    model._subject.next("pippo");
+    expect(handler).toHaveBeenCalledTimes(1);
 });
