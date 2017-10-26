@@ -2,10 +2,10 @@
 import merge from "lodash.merge"
 import type {OrmDriver} from "./OrmDriver";
 import {Subject} from "rxjs/Subject";
-export type Field = number|string|boolean|null|Model|Field[];
+export type FieldValue = number|string|boolean|null|Model|FieldValue[];
 export type AttrType = {
     type:"number"|"string"|"boolean"|Class<Model>|[Class<Model>],
-    default:Field
+    default:FieldValue
 }
 export type AttrTypes = {[string]:AttrType};
 export class Cid{
@@ -42,7 +42,7 @@ export default class Model{
     cid:Cid;
     _subject = new Subject();
 
-    constructor<T:Model>(properties?:{[string]:Field}){
+    constructor<T:Model>(properties?:{[string]:FieldValue}){
         const id = properties && properties[this.getClass().idAttribute];
         if(id && (typeof id === "number" || typeof id === "string")){
             let oldCid = this.getClass()._ormDriver.getCidById(this, id);
@@ -57,7 +57,11 @@ export default class Model{
             if (attrType.default)
                 defaults[prop] = attrType.default;
         }
-        this.getClass()._ormDriver.set(this, Object.assign(defaults,properties));
+        if (id) {
+            this.fetch(Object.assign(defaults, properties));
+        }else{
+            this.set(Object.assign(defaults, properties));
+        }
     }
 
     onChange(handler:(value:string)=>void){
@@ -87,15 +91,23 @@ export default class Model{
     /**
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
      */
-    async set<T:Model>(setHash: {[string]:Field}): Promise<Model>{
+    async set<T:Model>(setHash: {[string]:FieldValue}): Promise<Model>{
         return this.getClass()._ormDriver.set(this, setHash);
+    }
+    async fetch<T:Model>(setHash: {[string]:FieldValue}): Promise<Model>{
+        return this.getClass()._ormDriver.fetch(this, setHash);
     }
 
     /**
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    async get<T:Model>(key?: string): Promise<Field|{ [string]: Field }>{
+    async get<T:Model>(key?: string): Promise<FieldValue|{ [string]: FieldValue }>{
         return this.getClass()._ormDriver.get(this, key);
     }
+
+    getChanges():{ [string]: FieldValue } | null{
+        return this.getClass()._ormDriver.getChanges(this);
+    }
+    hasChanges=this.getChanges;
 }

@@ -1,7 +1,6 @@
 import property from "../src/decorators/property"
 import orm from "../src/decorators/orm"
 import Model from "../src/index"
-import OrmDriver from "../src/OrmDriver"
 import SimpleOrm from "./SimpleOrm";
 
 @orm(new SimpleOrm())
@@ -16,9 +15,13 @@ test("model type",()=>{
 test("model set",async ()=>{
     let model = new TestModel();
     expect(model.cid );
+    expect(model.getChanges()).toBeTruthy();
     expect(await model.get("property")).toBe("default");
     expect(await model.set({property:"value"})).toBeInstanceOf(Model);
     expect(await model.get("property")).toBe("value")
+
+    model = new TestModel({id:123});
+    expect(model.getChanges()).toBeNull();
 });
 
 
