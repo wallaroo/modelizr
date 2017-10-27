@@ -25,6 +25,14 @@ export default class SimpleOrm implements OrmDriver {
         byId: {}
     };
 
+    constructor(opts: {
+        executeQuery: (Class<Model>, Query) => Promise<Model[]>,
+        observeQuery: (Class<Model>, Query) => void
+    }) {
+        //$FlowFixMe
+        Object.assign(this, opts);
+    }
+
     getCidById(model: Model, id: string | number): Cid | null {
         const storeItem = this._store.byId[model.getClass().name];
         return storeItem ? storeItem[`${id}`] : null;

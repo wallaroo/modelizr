@@ -7,6 +7,7 @@ import {Subject} from "rxjs/Subject";
 import Query from "./Query";
 
 export type FieldValue = number | string | boolean | null | Model | FieldValue[];
+export type FieldObject = { [string]: FieldValue };
 export type AttrType = {
     type: "number" | "string" | "boolean" | Class<Model> | [Class<Model>],
     default: FieldValue
@@ -47,35 +48,43 @@ export default class Model {
         return Object.getPrototypeOf(this);
     }
 
-    static create(properties?: { [string]: FieldValue }): Model {
-        let res: Model;
-        const id = properties && properties[this.idAttribute];
-        if (this.discriminator) {
-            throw "implement me";
-        }
-        else {
-            res = new this();
-        }
+    static create(attributes?: FieldObject | FieldObject[]): Model | Model[]{
+        if (Array.isArray(attributes)){
+            let res:Model[] = [];
+            for(const cursor of attributes){
+                res.push((this.create(cursor):any));
+            }
+            return res;
+        }else {
+            let res: Model;
+            const id = attributes && attributes[this.idAttribute];
+            if (this.discriminator) {
+                throw "implement me";
+            }
+            else {
+                res = new this();
+            }
 
-        if (id && (typeof id === "number" || typeof id === "string")) {
-            let oldCid = this._ormDriver.getCidById(res, id);
-            res.cid = oldCid || new Cid();
-        } else {
-            res.cid = new Cid();
-        }
+            if (id && (typeof id === "number" || typeof id === "string")) {
+                let oldCid = this._ormDriver.getCidById(res, id);
+                res.cid = oldCid || new Cid();
+            } else {
+                res.cid = new Cid();
+            }
 
-        let defaults = {};
-        for (let prop of Object.keys(this.getAttrTypes())) {
-            let attrType = this.getAttrTypes()[prop];
-            if (attrType.default)
-                defaults[prop] = attrType.default;
+            let defaults = {};
+            for (let prop of Object.keys(this.getAttrTypes())) {
+                let attrType = this.getAttrTypes()[prop];
+                if (attrType.default)
+                    defaults[prop] = attrType.default;
+            }
+            if (id) {
+                this._ormDriver.fetch(res, this._resolve(Object.assign(defaults, attributes)));
+            } else {
+                this._ormDriver.set(res, this._resolve(Object.assign(defaults, attributes)));
+            }
+            return res;
         }
-        if (id) {
-            this._ormDriver.fetch(res, this._resolve(Object.assign(defaults, properties)));
-        } else {
-            this._ormDriver.set(res, this._resolve(Object.assign(defaults, properties)));
-        }
-        return res;
     }
 
     static _resolve(setHash: { [string]: FieldValue }): { [string]: FieldValue } {
@@ -114,6 +123,11 @@ export default class Model {
     static async executeQuery(query: Query): Promise<Model[]> {
         return this._ormDriver.executeQuery(this, query);
     }
+
+    static find():Query{
+        return new Query(this);
+    }
+
 
     cid: Cid;
     _subject = new Subject();

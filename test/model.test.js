@@ -3,7 +3,19 @@ import orm from "../src/decorators/orm"
 import Model from "../src/index"
 import SimpleOrm from "../src/drivers/SimpleOrm";
 
-const simpleorm = new SimpleOrm();
+const executeQuery = jest.fn(async (model, query)=>{
+    return TestModel.create([{property:"one"},{property:"two"},{property: "three"}]);
+}).mockReturnValueOnce(["a"]);
+
+const observeQuery = jest.fn((model,query)=>{
+    query.notify(TestModel.create([{property:"four"},{property: "five"}]));
+    setTimeout(()=>query.notify(TestModel.create([{property:"six"},{property: "seven"}])),1000)
+});
+
+const simpleorm = new SimpleOrm({
+    executeQuery,
+    observeQuery
+});
 
 @orm(simpleorm)
 class ChildModel extends Model{
@@ -60,4 +72,26 @@ test("onchange",async ()=>{
 test("childmodel",async ()=>{
     let model = TestModel.create({child:{foo:"barzotto"}});
     expect(await model.get("child")).toBeInstanceOf(ChildModel);
+});
+
+test("query", async ()=>{
+    let res = await TestModel.find().exec();
+    expect(Array.isArray(res)).toBeTruthy();
+    expect(res.length).toBe(1);
+    res = await TestModel
+        .find()
+        .where("property=='field'")
+        .where("property",">",1)
+        .orderBy("property")
+        .startAt(4)
+        .limit(2)
+        .exec();
+    expect(res.length).toBe(3);
+    expect(await res[0].get("property")).toBe("one");
+    expect(await res[1].get("property")).toBe("two");
+    expect(await res[2].get("property")).toBe("three");
+
+    res.observe((models)=>{
+
+    })
 });
