@@ -1,6 +1,7 @@
 // @flow
 import Model, {Cid} from "./"
 import type {FieldValue} from "./index";
+import Query from "./Query";
 
 export interface OrmDriver {
     /**
@@ -38,4 +39,8 @@ export interface OrmDriver {
      * gets the changes from the last fetch
      */
     getChanges(model: Model): { [string]: FieldValue } | null;
+
+    executeQuery(model: Class<Model>, query:Query):Promise<Model[]>;
+
+    observeQuery(model: Class<Model>, query:Query):void;
 }

@@ -1,30 +1,38 @@
 // @flow
 import merge from "lodash.merge"
+import isPlainObject from "lodash.isplainobject"
 import type {OrmDriver} from "./OrmDriver";
+import {objectDif} from "./utils"
 import {Subject} from "rxjs/Subject";
-export type FieldValue = number|string|boolean|null|Model|FieldValue[];
+import Query from "./Query";
+
+export type FieldValue = number | string | boolean | null | Model | FieldValue[];
 export type AttrType = {
-    type:"number"|"string"|"boolean"|Class<Model>|[Class<Model>],
-    default:FieldValue
+    type: "number" | "string" | "boolean" | Class<Model> | [Class<Model>],
+    default: FieldValue
 }
-export type AttrTypes = {[string]:AttrType};
-export class Cid{
+export type AttrTypes = { [string]: AttrType };
+
+export class Cid {
     static lastCid = 0;
-    cid=Cid.lastCid++;
-    toString(){
+    cid = Cid.lastCid++;
+
+    toString() {
         return `cid#${this.cid}`;
     }
-    equalsTo(cid:Cid){
+
+    equalsTo(cid: Cid) {
         return this.cid === cid.cid;
     }
 }
 
-export default class Model{
-    static _ormDriver:OrmDriver;
-    static _attrTypes:AttrTypes = {};
-    static idAttribute:string = "id";
+export default class Model {
+    static _ormDriver: OrmDriver;
+    static _attrTypes: AttrTypes = {};
+    static idAttribute: string = "id";
+    static discriminator: string;
 
-    static getAttrTypes():AttrTypes{
+    static getAttrTypes(): AttrTypes {
         const superClass = this.getSuperClass();
         if (Model.isPrototypeOf(superClass)) {
             // $FlowFixMe
@@ -35,66 +43,121 @@ export default class Model{
         }
     }
 
-    static getSuperClass(){
+    static getSuperClass() {
         return Object.getPrototypeOf(this);
     }
 
-    cid:Cid;
-    _subject = new Subject();
+    static create(properties?: { [string]: FieldValue }): Model {
+        let res: Model;
+        const id = properties && properties[this.idAttribute];
+        if (this.discriminator) {
+            throw "implement me";
+        }
+        else {
+            res = new this();
+        }
 
-    constructor<T:Model>(properties?:{[string]:FieldValue}){
-        const id = properties && properties[this.getClass().idAttribute];
-        if(id && (typeof id === "number" || typeof id === "string")){
-            let oldCid = this.getClass()._ormDriver.getCidById(this, id);
-            this.cid=oldCid || new Cid();
-        }else{
-            this.cid=new Cid();
+        if (id && (typeof id === "number" || typeof id === "string")) {
+            let oldCid = this._ormDriver.getCidById(res, id);
+            res.cid = oldCid || new Cid();
+        } else {
+            res.cid = new Cid();
         }
 
         let defaults = {};
-        for(let prop of Object.keys(this.getClass().getAttrTypes())){
-            let attrType = this.getClass().getAttrTypes()[prop];
+        for (let prop of Object.keys(this.getAttrTypes())) {
+            let attrType = this.getAttrTypes()[prop];
             if (attrType.default)
                 defaults[prop] = attrType.default;
         }
         if (id) {
-            this.fetch(Object.assign(defaults, properties));
-        }else{
-            this.set(Object.assign(defaults, properties));
+            this._ormDriver.fetch(res, this._resolve(Object.assign(defaults, properties)));
+        } else {
+            this._ormDriver.set(res, this._resolve(Object.assign(defaults, properties)));
         }
+        return res;
     }
 
-    onChange(handler:(value:string)=>void){
+    static _resolve(setHash: { [string]: FieldValue }): { [string]: FieldValue } {
+        const attrTypes = this.getAttrTypes();
+        const res = {};
+        for (const attrName of Object.keys(attrTypes)) {
+            const attrType = attrTypes[attrName];
+            const value = setHash[attrName];
+
+            if (value !== undefined) {
+                if (Model.isPrototypeOf(attrType.type)) {
+                    if (value instanceof attrType.type)
+                        res[attrName] = value;
+                    else if (isPlainObject(value)) {
+                        if (attrType.type.discriminator) {
+                            throw "implement me"
+                        } else {
+                            //$FlowFixMe
+                            res[attrName] = new (attrType.type)(value);
+                        }
+                    } else {
+                        throw `invalid type of ${+value}; expecting ${+attrType.type}`
+                    }
+                } else {
+                    res[attrName] = value;
+                }
+            }
+        }
+        return res;
+    }
+
+    static observeQuery(query: Query): void {
+        this._ormDriver.observeQuery(this, query);
+    }
+
+    static async executeQuery(query: Query): Promise<Model[]> {
+        return this._ormDriver.executeQuery(this, query);
+    }
+
+    cid: Cid;
+    _subject = new Subject();
+
+
+    onChange(handler: (value: string) => void) {
         return this._subject.subscribe(handler)
     }
 
-    getClass():Class<Model>{
+    getClass(): Class<Model> {
         return this.constructor;
     }
 
-    getId():string|number|null{
+    getId(): string | number | null {
         const res = this.get(this.getClass().idAttribute);
-        if (res!==null
+        if (res !== null
             && typeof res !== "number"
-            && typeof res !== "string"){
+            && typeof res !== "string") {
 
             throw "id not valid"
         }
         return res;
     }
-    setId(id:string|number):Model{
-        this.set({[this.getClass().idAttribute]:id});
+
+    setId(id: string | number): Model {
+        this.set({[this.getClass().idAttribute]: id});
         return this;
     }
-
 
     /**
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
      */
-    async set<T:Model>(setHash: {[string]:FieldValue}): Promise<Model>{
-        return this.getClass()._ormDriver.set(this, setHash);
+    async set<T:Model>(setHash: { [string]: FieldValue }): Promise<Model> {
+        setHash = this.getClass()._resolve(setHash);
+        const changes = objectDif(this.get(), setHash);
+        let res = this;
+        if (changes) {
+            await this.getClass()._ormDriver.set(this, setHash);
+            this._subject.next(this);
+        }
+        return res;
     }
-    async fetch<T:Model>(setHash: {[string]:FieldValue}): Promise<Model>{
+
+    async fetch<T:Model>(setHash: { [string]: FieldValue }): Promise<Model> {
         return this.getClass()._ormDriver.fetch(this, setHash);
     }
 
@@ -102,12 +165,13 @@ export default class Model{
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    async get<T:Model>(key?: string): Promise<FieldValue|{ [string]: FieldValue }>{
+    async get<T:Model>(key?: string): Promise<FieldValue | { [string]: FieldValue }> {
         return this.getClass()._ormDriver.get(this, key);
     }
 
-    getChanges():{ [string]: FieldValue } | null{
+    getChanges(): { [string]: FieldValue } | null {
         return this.getClass()._ormDriver.getChanges(this);
     }
-    hasChanges=this.getChanges;
+
+    hasChanges = this.getChanges;
 }
