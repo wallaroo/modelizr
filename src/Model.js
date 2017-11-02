@@ -103,7 +103,7 @@ export default class Model {
                             throw "implement me"
                         } else {
                             //$FlowFixMe
-                            res[attrName] = new (attrType.type)(value);
+                            res[attrName] = attrType.type.create(value);
                         }
                     } else {
                         throw `invalid type of ${+value}; expecting ${+attrType.type}`

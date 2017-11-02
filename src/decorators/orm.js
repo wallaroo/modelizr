@@ -1,5 +1,5 @@
 //@flow
-import Model from "../index";
+import Model from "../Model";
 import {OrmDriver} from "../OrmDriver";
 
 export default (ormDriver:OrmDriver)=>function orm(target:Class<Model>){

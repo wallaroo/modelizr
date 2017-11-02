@@ -1,6 +1,6 @@
 import property from "../src/decorators/property"
 import orm from "../src/decorators/orm"
-import Model from "../src/index"
+import Model from "../src/Model"
 import SimpleOrm from "../src/drivers/SimpleOrm";
 
 const executeQuery = jest.fn(async (model, query)=>{
@@ -8,8 +8,8 @@ const executeQuery = jest.fn(async (model, query)=>{
 }).mockReturnValueOnce(["a"]);
 
 const observeQuery = jest.fn((model,query)=>{
-    query.notify(TestModel.create([{property:"four"},{property: "five"}]));
-    setTimeout(()=>query.notify(TestModel.create([{property:"six"},{property: "seven"}])),1000)
+    query.notify(model.create([{property:"four"},{property: "five"}]));
+    setTimeout(()=>query.notify(model.create([{property:"six"},{property: "seven"}])),1000)
 });
 
 const simpleorm = new SimpleOrm({
@@ -70,11 +70,17 @@ test("onchange",async ()=>{
 
 
 test("childmodel",async ()=>{
+    const parentChangeHandler = jest.fn();
     let model = TestModel.create({child:{foo:"barzotto"}});
-    expect(await model.get("child")).toBeInstanceOf(ChildModel);
+    model.onChange(parentChangeHandler);
+    const child = await model.get("child");
+    expect(child).toBeInstanceOf(ChildModel);
+    expect(parentChangeHandler).toHaveBeenCalledTimes(0);
+    child.set({foo:"barr"});
+    expect(parentChangeHandler).toHaveBeenCalledTimes(1);
 });
 
-test("query", async ()=>{
+test("query", async done =>{
     let res = await TestModel.find().exec();
     expect(Array.isArray(res)).toBeTruthy();
     expect(res.length).toBe(1);
@@ -91,7 +97,27 @@ test("query", async ()=>{
     expect(await res[1].get("property")).toBe("two");
     expect(await res[2].get("property")).toBe("three");
 
-    res.observe((models)=>{
+    res = TestModel
+        .find()
+        .where("property=='field'")
+        .where("property",">",1)
+        .orderBy("property")
+        .startAt(4)
+        .limit(2);
+    let runs = 0;
+    let handler = jest.fn(async (models)=>{
+        if (runs ++ == 0) {
+            expect(models.length).toBe(2);
+            expect(await models[0].get("property")).toBe("four");
+            expect(await models[1].get("property")).toBe("five");
+        }else{
+            expect(models.length).toBe(2);
+            expect(await models[0].get("property")).toBe("six");
+            expect(await models[1].get("property")).toBe("seven");
+            done()
+        }
 
-    })
+    });
+    res.subscribe(handler)
+    expect(handler).toHaveBeenCalledTimes(1);
 });

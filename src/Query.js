@@ -1,7 +1,7 @@
 //@flow
-import Subject from "rxjs/Subject"
+import {Subject} from "rxjs/Subject"
 import type Subscription from "rxjs/Subscription"
-import type Model from "./"
+import type Model from "./Model"
 import union from "lodash.union"
 type Operator = "==" | ">=" | ">" | "<" | "<=";
 type WhereClause = {
@@ -44,12 +44,15 @@ export default class Query {
     }
 
     subscribe(handler: Model[] => void): Subscription {
-        if (this._subject) {
+        let res;
+        if (!this._subject) {
             this._subject = new Subject;
+            res = this._subject.subscribe(handler);
             this._model.observeQuery(this);
+        }else{
+            res = this._subject.subscribe(handler);
         }
-        //$FlowFixMe
-        const res = this._subject.subscribe(handler);
+
         // TODO res.add(this._onUnsubscribe)
         return res;
     }
@@ -87,6 +90,8 @@ export default class Query {
     notify(models:Model[]){
         if (this._subject){
             this._subject.next(models);
+        }else{
+            throw "no subject"
         }
     }
 }

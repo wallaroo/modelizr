@@ -1,7 +1,7 @@
 {
   "name": "modelizr",
   "version": "0.1.0",
-  "main": "src/index.js",
+  "main": "src/Model.js",
   "author": "wallaroo",
   "license": "MIT",
   "scripts": {

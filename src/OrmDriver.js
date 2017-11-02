@@ -1,6 +1,6 @@
 // @flow
-import Model, {Cid} from "./"
-import type {FieldValue} from "./index";
+import Model, {Cid} from "./Model"
+import type {FieldValue} from "./Model";
 import Query from "./Query";
 
 export interface OrmDriver {

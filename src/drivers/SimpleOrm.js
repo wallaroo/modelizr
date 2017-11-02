@@ -1,7 +1,7 @@
 //@flow
 import {OrmDriver} from "../OrmDriver";
-import type {FieldValue} from "../index"
-import Model, {Cid} from "../index";
+import type {FieldValue} from "../Model"
+import Model, {Cid} from "../Model";
 import {objectDif} from "../utils";
 import merge from "lodash.merge";
 import Query from "../Query";
@@ -77,7 +77,7 @@ export default class SimpleOrm implements OrmDriver {
 
     getId(model: Model): number | string | null {
         const values = this._get(model);
-        const res = values[model.getClass().idAttribute];
+        const res = values[model.getClass().idAttribute] || null;
         if (res !== null && typeof res !== "string" && typeof res !== "number") {
             throw "invalid id "
         }
