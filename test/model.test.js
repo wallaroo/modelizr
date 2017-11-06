@@ -146,3 +146,11 @@ test("query", async done =>{
     await res.subscribe(handler);
     expect(handler).toHaveBeenCalledTimes(1);
 });
+
+test("immutability", async ()=>{
+    const parent = await TestModel.create({property:"one","id":1});
+    const parent1 = await TestModel.create({"id":1});
+    expect(parent).toBe(parent1);
+    const parent2 = await parent1.set({property:"two"});
+    expect(parent).not.toBe(parent1);
+});

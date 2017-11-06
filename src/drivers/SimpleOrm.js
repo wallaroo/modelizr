@@ -7,10 +7,11 @@ import merge from "lodash.merge";
 import Query from "../Query";
 
 type StoreItem = {
-    model: Class<Model>,
+    model: Model,
     attributes: { [string]: FieldValue },
     changes: { [string]: FieldValue } | null,
 }
+
 export default class SimpleOrm implements OrmDriver {
     _lastId: number = 0;
     _store: {
@@ -33,8 +34,27 @@ export default class SimpleOrm implements OrmDriver {
         Object.assign(this, opts);
     }
 
-    getCidById(model: Model, id: string | number): Cid | null {
-        const storeItem = this._store.byId[model.getClass().name];
+    /**
+     * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
+     */
+    getModelById(model: Class<Model>, id: string | number): Model | null {
+        let res = null;
+        const cid = this.getCidById(model, id);
+        if (cid) {
+            res = this.getModelByCid(cid);
+        }
+        return res;
+    }
+
+    /**
+     * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
+     */
+    getModelByCid(cid: Cid): Model | null{
+        return this._store.byCid[`${cid.toString()}`].model;
+    }
+
+    getCidById(model: Class<Model>, id: string | number): Cid | null {
+        const storeItem = this._store.byId[model.name];
         return storeItem ? storeItem[`${id}`] : null;
     }
 
@@ -48,7 +68,7 @@ export default class SimpleOrm implements OrmDriver {
             let changes = objectDif(storeItem.attributes, setHash);
             this._store.byCid[sCid] = {...storeItem, changes};
         } else {
-            this._store.byCid[sCid] = {changes: setHash, attributes: {}, model: model.getClass()};
+            this._store.byCid[sCid] = {changes: setHash, attributes: {}, model: model};
         }
         return model;
     }
@@ -59,12 +79,15 @@ export default class SimpleOrm implements OrmDriver {
         storeItem = {
             attributes: merge({}, storeItem && storeItem.attributes, setHash),
             changes: null,
-            model: model.getClass()
+            model: model
         };
         this._store.byCid[sCid] = storeItem;
         const id = this.getId(model);
         if (id) {
-            this._store.byId[`${id}`] = model.cid
+            if (!this._store.byId[model.getClass().name]){
+                this._store.byId[model.getClass().name] = {}
+            }
+            this._store.byId[model.getClass().name][`${id}`] = model.cid
         }
         return model;
     }

@@ -59,20 +59,19 @@ export default class Model {
             }
             return res;
         }else {
-            let res: Model;
+            let res: Model|null = null;
             const id = attributes && attributes[this._idAttribute];
-            if (this.discriminator) {
-                throw "implement me";
+            if (id){
+                res = this._ormDriver.getModelById(this, ((id:any):string|number));
             }
-            else {
-                res = new this();
-            }
-
-            if (id && (typeof id === "number" || typeof id === "string")) {
-                let oldCid = this._ormDriver.getCidById(res, id);
-                res.cid = oldCid || new Cid();
-            } else {
-                res.cid = new Cid();
+            if (!res) {
+                if (this.discriminator) {
+                    throw "implement me";
+                }
+                else {
+                    res = new this();
+                    res.cid = new Cid();
+                }
             }
 
             let defaults = {};

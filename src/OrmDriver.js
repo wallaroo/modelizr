@@ -33,7 +33,17 @@ export interface OrmDriver {
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
      */
-    getCidById(model: Model, id: string | number): Cid | null;
+    getCidById(model: Class<Model>, id: string | number): Cid | null;
+
+    /**
+     * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
+     */
+    getModelById(model: Class<Model>, id: string | number): Model | null;
+
+    /**
+     * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
+     */
+    getModelByCid(cid: Cid): Model | null;
 
     /**
      * gets the changes from the last fetch
