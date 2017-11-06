@@ -43,12 +43,12 @@ export default class Query {
         return this;
     }
 
-    subscribe(handler: Model[] => void): Subscription {
+    async subscribe(handler: Model[] => void): Promise<Subscription> {
         let res;
         if (!this._subject) {
             this._subject = new Subject;
             res = this._subject.subscribe(handler);
-            this._model.observeQuery(this);
+            await this._model.observeQuery(this);
         }else{
             res = this._subject.subscribe(handler);
         }

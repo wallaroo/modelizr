@@ -6,6 +6,9 @@ export default (descriptor:AttrType)=>function property(target:Model, key:string
     let def = desc.initializer && desc.initializer();
     if (def !== undefined)
         descriptor.default = def;
+    if(!target.getClass().hasOwnProperty("_attrTypes")) {
+        target.getClass()._attrTypes = {}
+    }
     target.getClass()._attrTypes[key]=descriptor;
     return desc;
 }

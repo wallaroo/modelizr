@@ -2,14 +2,15 @@ import property from "../src/decorators/property"
 import orm from "../src/decorators/orm"
 import Model from "../src/Model"
 import SimpleOrm from "../src/drivers/SimpleOrm";
+import {objectDif} from "../src/utils";
 
 const executeQuery = jest.fn(async (model, query)=>{
     return TestModel.create([{property:"one"},{property:"two"},{property: "three"}]);
 }).mockReturnValueOnce(["a"]);
 
-const observeQuery = jest.fn((model,query)=>{
-    query.notify(model.create([{property:"four"},{property: "five"}]));
-    setTimeout(()=>query.notify(model.create([{property:"six"},{property: "seven"}])),1000)
+const observeQuery = jest.fn(async (model,query)=>{
+    query.notify(await model.create([{property:"four"},{property: "five"}]));
+    setTimeout(async ()=>query.notify(await model.create([{property:"six"},{property: "seven"}])),1000)
 });
 
 const simpleorm = new SimpleOrm({
@@ -40,20 +41,20 @@ test("model type",()=>{
 });
 
 test("model set",async ()=>{
-    let model = TestModel.create();
+    let model = await TestModel.create();
     expect(model.cid );
     expect(model.getChanges()).toBeTruthy();
     expect(await model.get("property")).toBe("default");
     expect(await model.set({property:"value"})).toBeInstanceOf(Model);
     expect(await model.get("property")).toBe("value");
 
-    model = TestModel.create({id:123});
+    model = await TestModel.create({id:123});
     expect(model.getChanges()).toBeNull();
 });
 
 
 test("onchange",async ()=>{
-    let model = TestModel.create();
+    let model = await TestModel.create();
     let handler = jest.fn(async (model)=>expect(await model.get("property")).toBe("pippo"));
     await model.set({property:"pluto"});
     expect(handler).toHaveBeenCalledTimes(0);
@@ -68,16 +69,32 @@ test("onchange",async ()=>{
     expect.assertions(7)
 });
 
-
+test("get", async ()=>{
+    let parent = await TestModel.create({child:{foo:"barzotto"}});
+    const res = await parent.get();
+    expect(res.child).toBeTruthy();
+    expect(res.child).toBeInstanceOf(ChildModel);
+});
 test("childmodel",async ()=>{
     const parentChangeHandler = jest.fn();
-    let model = TestModel.create({child:{foo:"barzotto"}});
-    model.onChange(parentChangeHandler);
-    const child = await model.get("child");
+    const childChangeHandler = jest.fn();
+    let parent = await TestModel.create({child:{foo:"barzotto"}});
+    expect(Object.keys(parent._subs).length).toBe(1);
+    parent.onChange(parentChangeHandler);
+    const child = await parent.get("child");
+    child.onChange(childChangeHandler);
     expect(child).toBeInstanceOf(ChildModel);
+    expect(childChangeHandler).toHaveBeenCalledTimes(0);
     expect(parentChangeHandler).toHaveBeenCalledTimes(0);
-    child.set({foo:"barr"});
+    await child.set({foo:"barr"});
+    expect(childChangeHandler).toHaveBeenCalledTimes(1);
     expect(parentChangeHandler).toHaveBeenCalledTimes(1);
+    await parent.set({child:null});
+    expect(childChangeHandler).toHaveBeenCalledTimes(1);
+    expect(parentChangeHandler).toHaveBeenCalledTimes(2);
+    await child.set({foo:"bazz"});
+    expect(childChangeHandler).toHaveBeenCalledTimes(2);
+    expect(parentChangeHandler).toHaveBeenCalledTimes(2);
 });
 
 test("query", async done =>{
@@ -118,6 +135,6 @@ test("query", async done =>{
         }
 
     });
-    res.subscribe(handler)
+    await res.subscribe(handler);
     expect(handler).toHaveBeenCalledTimes(1);
 });

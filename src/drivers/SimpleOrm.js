@@ -41,7 +41,7 @@ export default class SimpleOrm implements OrmDriver {
     /**
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
      */
-    async set<T:Model>(model: T, setHash: { [string]: FieldValue }): Promise<T> {
+    set<T:Model>(model: T, setHash: { [string]: FieldValue }): T {
         const sCid = model.cid.toString();
         let storeItem = this._store.byCid[sCid];
         if (storeItem) {
@@ -53,7 +53,7 @@ export default class SimpleOrm implements OrmDriver {
         return model;
     }
 
-    async fetch<T:Model>(model: T, setHash: { [string]: FieldValue }): Promise<T> {
+    fetch<T:Model>(model: T, setHash: { [string]: FieldValue }): T {
         const sCid = model.cid.toString();
         let storeItem = this._store.byCid[sCid];
         storeItem = {
@@ -127,7 +127,7 @@ export default class SimpleOrm implements OrmDriver {
         return storeItem ? storeItem.changes : null;
     }
 
-    observeQuery(model: Class<Model>, query: Query): void {
+    async observeQuery(model: Class<Model>, query: Query): Promise<void> {
         throw "implement me"
     }
 

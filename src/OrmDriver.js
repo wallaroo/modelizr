@@ -7,12 +7,12 @@ export interface OrmDriver {
     /**
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
      */
-    set<T:Model>(model: T, setHash: { [string]: FieldValue }): Promise<T>;
+    set<T:Model>(model: T, setHash: { [string]: FieldValue }): T;
 
     /**
      * Sets properties bypassing changes eventually pre-existing changes will be dropped
      */
-    fetch<T:Model>(model: T, setHash: { [string]: FieldValue }): Promise<T>;
+    fetch<T:Model>(model: T, setHash: { [string]: FieldValue }): T;
 
     /**
      * Gets the current value for the given property
@@ -42,5 +42,5 @@ export interface OrmDriver {
 
     executeQuery(model: Class<Model>, query:Query):Promise<Model[]>;
 
-    observeQuery(model: Class<Model>, query:Query):void;
+    observeQuery(model: Class<Model>, query:Query):Promise<void>;
 }

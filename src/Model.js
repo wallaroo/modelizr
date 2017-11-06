@@ -32,6 +32,9 @@ export default class Model {
     static _attrTypes: AttrTypes = {};
     static idAttribute: string = "id";
     static discriminator: string;
+    cid: Cid;
+    _subject = new Subject();
+    _subs = {};
 
     static getAttrTypes(): AttrTypes {
         const superClass = this.getSuperClass();
@@ -48,11 +51,11 @@ export default class Model {
         return Object.getPrototypeOf(this);
     }
 
-    static create(attributes?: FieldObject | FieldObject[]): Model | Model[]{
+    static async create(attributes?: FieldObject | FieldObject[]): Promise<Model | Model[]>{
         if (Array.isArray(attributes)){
             let res:Model[] = [];
             for(const cursor of attributes){
-                res.push((this.create(cursor):any));
+                res.push(await (this.create(cursor):any));
             }
             return res;
         }else {
@@ -79,15 +82,15 @@ export default class Model {
                     defaults[prop] = attrType.default;
             }
             if (id) {
-                this._ormDriver.fetch(res, this._resolve(Object.assign(defaults, attributes)));
+                await res.fetch(Object.assign(defaults, attributes));
             } else {
-                this._ormDriver.set(res, this._resolve(Object.assign(defaults, attributes)));
+                await res.set(Object.assign(defaults, attributes));
             }
             return res;
         }
     }
 
-    static _resolve(setHash: { [string]: FieldValue }): { [string]: FieldValue } {
+    static async _resolve(setHash: { [string]: FieldValue }, owner:Model): Promise<{ [string]: FieldValue }> {
         const attrTypes = this.getAttrTypes();
         const res = {};
         for (const attrName of Object.keys(attrTypes)) {
@@ -96,14 +99,16 @@ export default class Model {
 
             if (value !== undefined) {
                 if (Model.isPrototypeOf(attrType.type)) {
-                    if (value instanceof attrType.type)
+                    if (value === null){
                         res[attrName] = value;
-                    else if (isPlainObject(value)) {
+                    }else if (value instanceof attrType.type) {
+                        res[attrName] = value;
+                    }else if (isPlainObject(value)) {
                         if (attrType.type.discriminator) {
                             throw "implement me"
                         } else {
                             //$FlowFixMe
-                            res[attrName] = attrType.type.create(value);
+                            res[attrName] = await attrType.type.create(value);
                         }
                     } else {
                         throw `invalid type of ${+value}; expecting ${+attrType.type}`
@@ -116,8 +121,8 @@ export default class Model {
         return res;
     }
 
-    static observeQuery(query: Query): void {
-        this._ormDriver.observeQuery(this, query);
+    static async observeQuery(query: Query): Promise<void> {
+        return this._ormDriver.observeQuery(this, query);
     }
 
     static async executeQuery(query: Query): Promise<Model[]> {
@@ -128,9 +133,9 @@ export default class Model {
         return new Query(this);
     }
 
-
-    cid: Cid;
-    _subject = new Subject();
+    async _resolve(setHash: { [string]: FieldValue }): { [string]: FieldValue } {
+        return this.getClass()._resolve(setHash, this);
+    }
 
 
     onChange(handler: (value: string) => void) {
@@ -157,22 +162,66 @@ export default class Model {
         return this;
     }
 
+    _processChanges(current:{ [string]: FieldValue }, next:{ [string]: FieldValue }):void{
+        const attrTypes = this.getClass().getAttrTypes();
+        for (const attrName of Object.keys(next)){
+            const attr = attrTypes[attrName];
+
+            if(Model.isPrototypeOf(attr.type)){
+                if (current
+                    && current[attrName]
+                    && (
+                        !next[attrName]
+                        // $FlowFixMe
+                        || current[attrName].cid.toString() !== next[attrName].cid.toString()
+                    )
+                ){
+                    // $FlowFixMe
+                    this._subs[current[attrName].cid.toString()].unsubscribe();
+                    // $FlowFixMe
+                    this._subs[current[attrName].cid.toString()] = null;
+                }
+                if (next[attrName]
+                    && (
+                        !current
+                        || !current[attrName]
+                        // $FlowFixMe
+                        || current[attrName].cid.toString() !== next[attrName].cid.toString()
+                    )){
+                    // $FlowFixMe
+                    this._subs[next[attrName].cid.toString()] = next[attrName]._subject.subscribe(this._subject);
+                }
+
+            }
+        }
+    }
     /**
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
      */
     async set<T:Model>(setHash: { [string]: FieldValue }): Promise<Model> {
-        setHash = this.getClass()._resolve(setHash);
-        const changes = objectDif(this.get(), setHash);
+        setHash = await this._resolve(setHash);
+        const currentValues = await this.get();
+        const changes = objectDif(currentValues, setHash);
         let res = this;
         if (changes) {
-            await this.getClass()._ormDriver.set(this, setHash);
+            this._processChanges(currentValues, changes);
+            this.getClass()._ormDriver.set(this, setHash);
             this._subject.next(this);
         }
         return res;
     }
 
     async fetch<T:Model>(setHash: { [string]: FieldValue }): Promise<Model> {
-        return this.getClass()._ormDriver.fetch(this, setHash);
+        setHash = await this._resolve(setHash);
+        const currentValues = await this.get();
+        const changes = objectDif(currentValues, setHash);
+        let res = this;
+        if (changes) {
+            this._processChanges(currentValues, changes);
+            this.getClass()._ormDriver.fetch(this, setHash);
+            this._subject.next(this);
+        }
+        return res;
     }
 
     /**
