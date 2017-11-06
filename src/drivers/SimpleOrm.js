@@ -77,7 +77,7 @@ export default class SimpleOrm implements OrmDriver {
 
     getId(model: Model): number | string | null {
         const values = this._get(model);
-        const res = values[model.getClass().idAttribute] || null;
+        const res = values[model.getClass()._idAttribute] || null;
         if (res !== null && typeof res !== "string" && typeof res !== "number") {
             throw "invalid id "
         }

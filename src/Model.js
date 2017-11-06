@@ -30,7 +30,7 @@ export class Cid {
 export default class Model {
     static _ormDriver: OrmDriver;
     static _attrTypes: AttrTypes = {};
-    static idAttribute: string = "id";
+    static _idAttribute: string;
     static discriminator: string;
     cid: Cid;
     _subject = new Subject();
@@ -60,7 +60,7 @@ export default class Model {
             return res;
         }else {
             let res: Model;
-            const id = attributes && attributes[this.idAttribute];
+            const id = attributes && attributes[this._idAttribute];
             if (this.discriminator) {
                 throw "implement me";
             }
@@ -147,7 +147,7 @@ export default class Model {
     }
 
     getId(): string | number | null {
-        const res = this.get(this.getClass().idAttribute);
+        const res = this.get(this.getClass()._idAttribute);
         if (res !== null
             && typeof res !== "number"
             && typeof res !== "string") {
@@ -158,7 +158,7 @@ export default class Model {
     }
 
     setId(id: string | number): Model {
-        this.set({[this.getClass().idAttribute]: id});
+        this.set({[this.getClass()._idAttribute]: id});
         return this;
     }
 

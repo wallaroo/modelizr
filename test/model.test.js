@@ -1,8 +1,8 @@
 import property from "../src/decorators/property"
 import orm from "../src/decorators/orm"
+import id from "../src/decorators/id"
 import Model from "../src/Model"
 import SimpleOrm from "../src/drivers/SimpleOrm";
-import {objectDif} from "../src/utils";
 
 const executeQuery = jest.fn(async (model, query)=>{
     return TestModel.create([{property:"one"},{property:"two"},{property: "three"}]);
@@ -20,12 +20,20 @@ const simpleorm = new SimpleOrm({
 
 @orm(simpleorm)
 class ChildModel extends Model{
+    @id
+    @property({type:"number"})
+    id;
+
     @property({type:"string"})
     foo="bar";
 }
 
 @orm(simpleorm)
 class TestModel extends Model{
+    @id
+    @property({type:"number"})
+    id;
+
     @property({type:"string"})
     property="default";
 
