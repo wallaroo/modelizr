@@ -62,7 +62,7 @@ export default class Model {
             let res: Model|null = null;
             const id = attributes && attributes[this._idAttribute];
             if (id){
-                res = this._ormDriver.getModelById(this, ((id:any):string|number));
+                res = await this._ormDriver.getModelById(this, ((id:any):string|number));
             }
             if (!res) {
                 if (this.discriminator) {
@@ -132,6 +132,10 @@ export default class Model {
         return new Query(this);
     }
 
+    static where(...args):Query{
+        return (new Query(this)).where(...args);
+    }
+
     async _resolve(setHash: { [string]: FieldValue }): { [string]: FieldValue } {
         return this.getClass()._resolve(setHash, this);
     }
@@ -146,18 +150,11 @@ export default class Model {
     }
 
     getId(): string | number | null {
-        const res = this.get(this.getClass()._idAttribute);
-        if (res !== null
-            && typeof res !== "number"
-            && typeof res !== "string") {
-
-            throw "id not valid"
-        }
-        return res;
+        return this.getClass()._ormDriver.getId(this);
     }
 
     setId(id: string | number): Model {
-        this.set({[this.getClass()._idAttribute]: id});
+        this.getClass()._ormDriver.set(this, {[this.getClass()._idAttribute]: id});
         return this;
     }
 
@@ -194,6 +191,14 @@ export default class Model {
             }
         }
     }
+
+    clone():Model{
+        const res = new (this.getClass())();
+        res.cid = this.cid;
+        res._subject = this._subject;
+        return res;
+    }
+
     /**
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
      */
@@ -205,7 +210,9 @@ export default class Model {
         if (changes) {
             this._processChanges(currentValues, changes);
             this.getClass()._ormDriver.set(this, setHash);
-            this._subject.next(this);
+            res = this.clone();
+            this._subject.next(res);
+
         }
         return res;
     }
@@ -218,7 +225,8 @@ export default class Model {
         if (changes) {
             this._processChanges(currentValues, changes);
             this.getClass()._ormDriver.fetch(this, setHash);
-            this._subject.next(this);
+            res = this.clone();
+            this._subject.next(res);
         }
         return res;
     }
@@ -236,4 +244,12 @@ export default class Model {
     }
 
     hasChanges = this.getChanges;
+
+    async save():Promise<Model>{
+        return this.getClass()._ormDriver.save(this);
+    }
+
+    async delete():Promise<void>{
+        return this.getClass()._ormDriver.delete(this);
+    }
 }

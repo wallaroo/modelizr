@@ -20,6 +20,7 @@ export interface OrmDriver {
      */
     get<T:Model>(model: T, key?: string): Promise<FieldValue | { [string]: FieldValue }>;
 
+    getId(model: Model): number | string | null;
     /**
      * Upserts the model in the ORM
      */
@@ -28,7 +29,7 @@ export interface OrmDriver {
     /**
      * Removes the model in the ORM
      */
-    delete<T:Model>(model: T): Promise<boolean>;
+    delete<T:Model>(model: T): Promise<void>;
 
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
@@ -38,7 +39,7 @@ export interface OrmDriver {
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
      */
-    getModelById(model: Class<Model>, id: string | number): Model | null;
+    getModelById(model: Class<Model>, id: string | number): Promise<Model | null>;
 
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise

@@ -26,7 +26,7 @@ export default class SimpleOrm implements OrmDriver {
         byId: {}
     };
 
-    constructor(opts: {
+    constructor(opts?: {
         executeQuery: (Class<Model>, Query) => Promise<Model[]>,
         observeQuery: (Class<Model>, Query) => void
     }) {
@@ -35,9 +35,9 @@ export default class SimpleOrm implements OrmDriver {
     }
 
     /**
-     * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
+     * gets the model by its id or null if doesn't exists
      */
-    getModelById(model: Class<Model>, id: string | number): Model | null {
+    async getModelById(model: Class<Model>, id: string | number): Promise<Model | null> {
         let res = null;
         const cid = this.getCidById(model, id);
         if (cid) {
@@ -65,7 +65,7 @@ export default class SimpleOrm implements OrmDriver {
         const sCid = model.cid.toString();
         let storeItem = this._store.byCid[sCid];
         if (storeItem) {
-            let changes = objectDif(storeItem.attributes, setHash);
+            let changes = objectDif(storeItem.attributes, Object.assign({}, storeItem.changes, setHash));
             this._store.byCid[sCid] = {...storeItem, changes};
         } else {
             this._store.byCid[sCid] = {changes: setHash, attributes: {}, model: model};
@@ -138,8 +138,13 @@ export default class SimpleOrm implements OrmDriver {
     /**
      * Removes the model in the ORM
      */
-    async delete(model: Model): Promise<boolean> {
-        return false;
+    async delete(model: Model): Promise<void> {
+        const id = this.getId(model);
+        if (id!==null){
+            delete this._store.byId[model.getClass().name][""+id];
+        }
+        delete this._store.byCid[model.cid.toString()];
+
     }
 
     /**

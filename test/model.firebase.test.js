@@ -2,20 +2,25 @@ import property from "../src/decorators/property"
 import orm from "../src/decorators/orm"
 import id from "../src/decorators/id"
 import Model from "../src/Model"
-import SimpleOrm from "../src/drivers/SimpleOrm";
+import FirestoreOrm from "../src/drivers/FirestoreOrm";
+import firebase from "firebase-admin";
 
-const executeQuery = jest.fn(async (model, query)=>{
-    return TestModel.create([{property:"one"},{property:"two"},{property: "three"}]);
-}).mockReturnValueOnce(["a"]);
+// Initialize Firebase
+const serviceAccount = require("./modelizr-test-b8856144760b.json");
 
-const observeQuery = jest.fn(async (model,query)=>{
-    query.notify(await model.create([{property:"four"},{property: "five"}]));
-    setTimeout(async ()=>query.notify(await model.create([{property:"six"},{property: "seven"}])),1000)
+firebase.initializeApp({
+    credential: firebase.credential.cert(serviceAccount)
 });
+const db = firebase.firestore();
+const simpleorm = new FirestoreOrm(db);
 
-const simpleorm = new SimpleOrm({
-    executeQuery,
-    observeQuery
+beforeAll(async ()=>{
+    const collection = await db.collection("TestModel").get();
+    const batch = db.batch();
+    collection.forEach((cur)=>{
+        batch.delete(cur.ref)
+    });
+    return batch.commit()
 });
 
 @orm(simpleorm)
@@ -48,7 +53,7 @@ test("model type",()=>{
     expect(TestModel.getAttrTypes()["property"]).toBeTruthy();
 });
 
-test("model set",async ()=>{
+test("model save",async ()=>{
     let model = await TestModel.create();
     expect(model.cid );
     expect(model.getChanges()).toBeTruthy();
@@ -57,6 +62,11 @@ test("model set",async ()=>{
     expect(await model.get("property")).toBe("value");
 
     model = await TestModel.create({id:123});
+    expect(model.getChanges()).toBeNull();
+
+    await model.set({property:"1one"});
+    expect(model.getChanges()).toBeTruthy();
+    await model.save();
     expect(model.getChanges()).toBeNull();
 });
 
@@ -109,8 +119,10 @@ test("query", async done =>{
     let res = await TestModel.find().exec();
     expect(Array.isArray(res)).toBeTruthy();
     expect(res.length).toBe(1);
+    for (const cur of await TestModel.create([{"property":"2two"},{"property":"3three"}])){
+        await cur.save()
+    }
     res = await TestModel
-        .find()
         .where("property=='field'")
         .where("property",">",1)
         .orderBy("property")
@@ -118,12 +130,11 @@ test("query", async done =>{
         .limit(2)
         .exec();
     expect(res.length).toBe(3);
-    expect(await res[0].get("property")).toBe("one");
-    expect(await res[1].get("property")).toBe("two");
-    expect(await res[2].get("property")).toBe("three");
+    expect(await res[0].get("property")).toBe("1one");
+    expect(await res[1].get("property")).toBe("2two");
+    expect(await res[2].get("property")).toBe("3three");
 
-    res = TestModel
-        .find()
+    const query = TestModel
         .where("property=='field'")
         .where("property",">",1)
         .orderBy("property")
@@ -132,19 +143,21 @@ test("query", async done =>{
     let runs = 0;
     let handler = jest.fn(async (models)=>{
         if (runs ++ == 0) {
-            expect(models.length).toBe(2);
-            expect(await models[0].get("property")).toBe("four");
-            expect(await models[1].get("property")).toBe("five");
+            expect(models.length).toBe(3);
+            expect(await models[0].get("property")).toBe("1one");
+            expect(await models[1].get("property")).toBe("2two");
+            expect(await models[2].get("property")).toBe("3three");
         }else{
             expect(models.length).toBe(2);
-            expect(await models[0].get("property")).toBe("six");
-            expect(await models[1].get("property")).toBe("seven");
+            expect(await models[0].get("property")).toBe("1one");
+            expect(await models[1].get("property")).toBe("3three");
             done()
         }
 
     });
-    await res.subscribe(handler);
+    await query.subscribe(handler);
     expect(handler).toHaveBeenCalledTimes(1);
+    await res[1].delete();
 });
 
 test("immutability", async ()=>{
