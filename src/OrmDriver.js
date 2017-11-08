@@ -2,6 +2,7 @@
 import Model, {Cid} from "./Model"
 import type {FieldValue} from "./Model";
 import Query from "./Query";
+import Collection from "./Collection";
 
 export interface OrmDriver {
     /**
@@ -24,12 +25,12 @@ export interface OrmDriver {
     /**
      * Upserts the model in the ORM
      */
-    save<T:Model>(model: T): Promise<T>;
+    save<T:Model>(model: T, collection?:Collection<T>): Promise<T>;
 
     /**
      * Removes the model in the ORM
      */
-    delete<T:Model>(model: T): Promise<void>;
+    delete<T:Model>(model: T, collection?:Collection<T>): Promise<void>;
 
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
@@ -51,7 +52,7 @@ export interface OrmDriver {
      */
     getChanges(model: Model): { [string]: FieldValue } | null;
 
-    executeQuery(model: Class<Model>, query:Query):Promise<Model[]>;
+    executeQuery<T:Model>(model: Class<T>, query:Query<T>):Promise<T[]>;
 
-    observeQuery(model: Class<Model>, query:Query):Promise<void>;
+    observeQuery<T:Model>(model: Class<T>, query:Query<T>):Promise<void>;
 }

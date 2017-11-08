@@ -5,6 +5,7 @@ import Model, {Cid} from "../Model";
 import {objectDif} from "../utils";
 import merge from "lodash.merge";
 import Query from "../Query";
+import Collection from "../Collection";
 
 type StoreItem = {
     model: Model,
@@ -27,8 +28,8 @@ export default class SimpleOrm implements OrmDriver {
     };
 
     constructor(opts?: {
-        executeQuery: (Class<Model>, Query) => Promise<Model[]>,
-        observeQuery: (Class<Model>, Query) => void
+        executeQuery: (Class<Model>, Query<Model>) => Promise<Model[]>,
+        observeQuery: (Class<Model>, Query<Model>) => void
     }) {
         //$FlowFixMe
         Object.assign(this, opts);
@@ -126,7 +127,7 @@ export default class SimpleOrm implements OrmDriver {
     /**
      * Upserts the model in the ORM
      */
-    async save<T:Model>(model: T): Promise<T> {
+    async save<T:Model>(model: T, collection?:Collection<T>): Promise<T> {
         if (!model.getId()) {
             model.setId(this._lastId++)
         }
@@ -138,7 +139,7 @@ export default class SimpleOrm implements OrmDriver {
     /**
      * Removes the model in the ORM
      */
-    async delete(model: Model): Promise<void> {
+    async delete<T:Model>(model: T, collection?:Collection<T>): Promise<void> {
         const id = this.getId(model);
         if (id!==null){
             delete this._store.byId[model.getClass().name][""+id];
@@ -155,11 +156,11 @@ export default class SimpleOrm implements OrmDriver {
         return storeItem ? storeItem.changes : null;
     }
 
-    async observeQuery(model: Class<Model>, query: Query): Promise<void> {
+    async observeQuery<T:Model>(model: Class<Model>, query: Query<T>): Promise<void> {
         throw "implement me"
     }
 
-    async executeQuery(model: Class<Model>, query: Query): Promise<Model[]> {
+    async executeQuery<T:Model>(model: Class<Model>, query: Query<T>): Promise<T[]> {
         throw "implement me"
     }
 }

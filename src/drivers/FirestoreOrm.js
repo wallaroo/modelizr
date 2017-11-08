@@ -2,6 +2,7 @@
 import SimpleOrm from "./SimpleOrm";
 import Model from "../Model";
 import Query from "../Query";
+import Collection from "../Collection";
 
 type FirestoreDoc = {
     data : void => any,
@@ -31,8 +32,8 @@ export default class FirestoreOrm extends SimpleOrm {
         this._db = db;
     }
 
-    async observeQuery(model: Class<Model>, query: Query): Promise<void> {
-        let collection = this._db.collection(model.name);
+    async observeQuery<T:Model>(model: Class<Model>, query: Query<T>): Promise<void> {
+        let collection = this._db.collection(query.collection.name);
         collection = this.applyQuery(collection, query);
         return new Promise((resolve)=>{
             collection.onSnapshot((snapshot)=>{
@@ -49,7 +50,7 @@ export default class FirestoreOrm extends SimpleOrm {
         });
     }
 
-    applyQuery(firebaseQuery:FirestoreCollection, query:Query){
+    applyQuery<T:Model>(firebaseQuery:FirestoreCollection, query:Query<T>){
         if(query._orderBy){
             for (const ordBy of query._orderBy){
                 firebaseQuery = firebaseQuery.orderBy(ordBy);
@@ -58,9 +59,10 @@ export default class FirestoreOrm extends SimpleOrm {
         return firebaseQuery;
     }
 
-    async executeQuery(model: Class<Model>, query: Query): Promise<Model[]> {
+    // $FlowFixMe
+    async executeQuery<T:Model>(model: Class<T>, query: Query<T>): Promise<Array<T>> {
         let res =[];
-        let collection = this._db.collection(model.name);
+        let collection = this._db.collection(query.collection.name);
         collection = this.applyQuery(collection, query);
 
         // $FlowFixMe
@@ -68,31 +70,31 @@ export default class FirestoreOrm extends SimpleOrm {
         snapshot.forEach((doc)=>{
             res.push(model.create(doc.data()));
         });
-        return ((Promise.all(res):any):Promise<Model[]>);
+        return ((Promise.all(res):any):Promise<Array<T>>);
     }
 
     /**
      * Removes the model in the ORM
      */
-    async delete(model: Model): Promise<void> {
+    async delete<T:Model>(model: T, collection?:Collection<T> = new Collection(model.getClass())): Promise<void> {
         const id = model.getId();
         if (id){
-            await this._db.collection(model.getClass().name).doc(""+id).delete()
+            await this._db.collection(collection.name).doc(""+id).delete()
         }
         super.delete(model);
     }
     /**
      * Upserts the model in the ORM
      */
-    async save<T:Model>(model: T): Promise<T> {
+    async save<T:Model>(model: T, collection?:Collection<T> = new Collection(model.getClass())): Promise<T> {
         const id = model.getId();
         if (id){
-            await this._db.collection(model.getClass().name).doc(""+id).set(await model.get());
+            await this._db.collection(collection.name).doc(""+id).set(await model.get());
         }else{
             //$FlowFixMe
-            const res = await this._db.collection(model.getClass().name).add(await model.get());
+            const res = await this._db.collection(collection.name).add(await model.get());
             model.setId(res.id);
-            await this._db.collection(model.getClass().name).doc(res.id).set(await model.get());
+            await this._db.collection(collection.name).doc(res.id).set(await model.get());
         }
         return super.save(model);
     }

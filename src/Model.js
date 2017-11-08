@@ -120,21 +120,40 @@ export default class Model {
         return res;
     }
 
-    static async observeQuery(query: Query): Promise<void> {
+    static getOrmDriver():OrmDriver{
+        return this._ormDriver;
+    }
+
+    static async observeQuery<T:Model>(query: Query<T>): Promise<void> {
+        // $FlowFixMe
         return this._ormDriver.observeQuery(this, query);
     }
 
-    static async executeQuery(query: Query): Promise<Model[]> {
+    static async executeQuery<T:Model>(query: Query<T>): Promise<T[]> {
+        // $FlowFixMe
         return this._ormDriver.executeQuery(this, query);
     }
 
-    static find():Query{
+    static find<T:Model>():Query<T>{
         return new Query(this);
     }
 
-    static where(...args):Query{
+    static where<T:Model>(...args):Query<T>{
         return (new Query(this)).where(...args);
     }
+
+    static orderBy<T:Model>(...args):Query<T>{
+        return (new Query(this))._orderBy(...args);
+    }
+
+    static limit<T:Model>(...args):Query<T>{
+        return (new Query(this))._limit(...args);
+    }
+
+    static startAt<T:Model>(...args):Query<T>{
+        return (new Query(this))._startAt(...args);
+    }
+
 
     async _resolve(setHash: { [string]: FieldValue }): { [string]: FieldValue } {
         return this.getClass()._resolve(setHash, this);

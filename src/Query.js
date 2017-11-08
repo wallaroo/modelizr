@@ -1,8 +1,9 @@
 //@flow
 import {Subject} from "rxjs/Subject"
 import type Subscription from "rxjs/Subscription"
-import type Model from "./Model"
+import Model from "./Model"
 import union from "lodash.union"
+import Collection from "./Collection";
 type Operator = "==" | ">=" | ">" | "<" | "<=";
 type WhereClause = {
     field:string,
@@ -12,16 +13,23 @@ type WhereClause = {
 
 const whereRegexp = /^(\w*)\s?(==|>|<|>=|<=)\s?((['"]\w*['"])|(\d*))$/;
 
-export default class Query {
-    _model: Class<Model>;
+export default class Query<T:Model> {
+    model: Class<T>;
+    collection: Collection<T>;
     _subject: Subject | null;
     _orderBy: string[] | null;
     _startAt: number | null;
     _limit: number | null;
     _whereClauses: WhereClause[] | null;
 
-    constructor(model: Class<Model>) {
-        this._model = model;
+    constructor(model: Class<T> | Collection<T>) {
+        if (Model.isPrototypeOf(model)) {
+            this.model = ((model: any): Class<T>);
+            this.collection = new Collection(((model: any): Class<T>));
+        }else if (model instanceof Collection){
+            this.model = model.model;
+            this.collection = model;
+        }
     }
 
     orderBy(...fields: string[]) {
@@ -43,12 +51,12 @@ export default class Query {
         return this;
     }
 
-    async subscribe(handler: Model[] => void): Promise<Subscription> {
+    async subscribe(handler: T[] => void): Promise<Subscription> {
         let res;
         if (!this._subject) {
             this._subject = new Subject;
             res = this._subject.subscribe(handler);
-            await this._model.observeQuery(this);
+            await this.model.observeQuery(this);
         }else{
             res = this._subject.subscribe(handler);
         }
@@ -57,11 +65,11 @@ export default class Query {
         return res;
     }
 
-    where(field:string, operator?:Operator, value?:string):Query{
+    where(field:string, operator?:Operator, value?:string):Query<T>{
         let clause:WhereClause;
         if (!operator){
             const match = field.match(whereRegexp);
-            if (!match) throw "wrong expression syntax"
+            if (!match) throw "wrong expression syntax";
             clause = (({
                 field:match[1],
                 operator:match[2],
@@ -83,11 +91,11 @@ export default class Query {
         return this;
     }
 
-    async exec(): Promise<Model[]> {
-        return this._model.executeQuery(this);
+    async exec(): Promise<T[]> {
+        return this.model.executeQuery(this);
     }
 
-    notify(models:Model[]){
+    notify(models:T[]){
         if (this._subject){
             this._subject.next(models);
         }else{

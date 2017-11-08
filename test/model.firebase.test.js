@@ -15,7 +15,7 @@ const db = firebase.firestore();
 const simpleorm = new FirestoreOrm(db);
 
 beforeAll(async ()=>{
-    const collection = await db.collection("TestModel").get();
+    const collection = await db.collection("testmodels").get();
     const batch = db.batch();
     collection.forEach((cur)=>{
         batch.delete(cur.ref)
