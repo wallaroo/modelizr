@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "main": "es/index.js",
   "jsnext:main": "src/index.js",
+  "module": "src/index.js",
   "author": "wallaroo",
   "license": "MIT",
   "scripts": {
