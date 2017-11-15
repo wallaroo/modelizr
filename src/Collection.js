@@ -2,6 +2,7 @@
 import Model from "./Model";
 import pluralize from "pluralize";
 import Query from "./Query";
+import type {OrmDriver} from "./OrmDriver";
 
 type Opts<T:Model> = {
     name?: string,
@@ -12,6 +13,7 @@ class Collection<T:Model> {
     name: string;
     model: Class<T>;
     keyAttribute: string;
+    static _ormDriver:OrmDriver;
 
     constructor(model:Class<T>,{name, keyAttribute}: Opts<T> = {}) {
         this.model = model;
@@ -28,35 +30,60 @@ class Collection<T:Model> {
         }
     }
 
-    getOrm(){
+    getOrm():OrmDriver{
         return this.getClass()._ormDriver || this.model.getOrmDriver();
     }
 
-    getKey(model:T): string | number {
-        const res = model.get(this.keyAttribute);
-        if (!res || (typeof res !== "number" && typeof res !== "string"))
+    async getKey(model:T): Promise<string | number> {
+        const res = await model.get(this.keyAttribute);
+        if (res && typeof res !== "number" && typeof res !== "string")
             throw "invalid key";
         return res;
     }
+    async setKey(model:T, key:string): Promise<T> {
+        return  model.set({[this.keyAttribute]:key});
+    }
 
-    async save(...models: Array<T>): Promise<Array<T>> {
-        return models;
+    async save(...models: Array<T>): Promise<T|Array<T>> {
+        if (models.length > 1) {
+            const promises = [];
+            for (const model of models) {
+                await model.save();
+                promises.push(this.getOrm().save(model, this))
+            }
+            return Promise.all(promises);
+        }else{
+            await models[0].save();
+            return this.getOrm().save(models[0], this);
+        }
+    }
+
+    find():Query<T>{
+        return new Query(this)
+    }
+
+    findAll():Promise<T[]|null>{
+        return this.find().exec()
+    }
+
+    async findByKey(key:string|number):Promise<T|null>{
+        return this.getOrm().getModelById(this.model, key, this);
     }
 
     where(...args: Array<*>): Query<T> {
-        return (new Query((this))).where(...args);
+        return this.find().where(...args);
     }
 
     orderBy(...args: Array<*>): Query<T> {
-        return (new Query(this))._orderBy(...args);
+        return this.find().orderBy(...args);
     }
 
     limit(...args: Array<*>): Query<T> {
-        return (new Query(this))._limit(...args);
+        return this.find().limit(...args);
     }
 
     startAt(...args: Array<*>): Query<T> {
-        return (new Query(this))._startAt(...args);
+        return this.find().startAt(...args);
     }
 
     getClass(): Class<Collection<T>> {

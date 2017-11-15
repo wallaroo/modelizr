@@ -38,24 +38,26 @@ export default class SimpleOrm implements OrmDriver {
     /**
      * gets the model by its id or null if doesn't exists
      */
-    async getModelById(model: Class<Model>, id: string | number): Promise<Model | null> {
+    async getModelById<T:Model>(model: Class<T>,
+                                id: string | number,
+                                collection?: Collection<T> = model.getCollection()): Promise<T | null> {
         let res = null;
         const cid = this.getCidById(model, id);
         if (cid) {
             res = this.getModelByCid(cid);
         }
-        return res;
+        return (res: any);
     }
 
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
      */
-    getModelByCid(cid: Cid): Model | null{
+    getModelByCid(cid: Cid): Model | null {
         return this._store.byCid[`${cid.toString()}`].model;
     }
 
     getCidById(model: Class<Model>, id: string | number): Cid | null {
-        const storeItem = this._store.byId[model.name];
+        const storeItem = this._store.byId[model.getCollection().name];
         return storeItem ? storeItem[`${id}`] : null;
     }
 
@@ -63,11 +65,17 @@ export default class SimpleOrm implements OrmDriver {
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
      */
     set<T:Model>(model: T, setHash: { [string]: FieldValue }): T {
+        //ensure last model for immutability
+        if (this._store.byCid[model.cid.toString()])
+            model = this._store.byCid[model.cid.toString()].model;
         const sCid = model.cid.toString();
         let storeItem = this._store.byCid[sCid];
         if (storeItem) {
             let changes = objectDif(storeItem.attributes, Object.assign({}, storeItem.changes, setHash));
-            this._store.byCid[sCid] = {...storeItem, changes};
+            if (changes){
+                model = model.clone()
+            }
+            this._store.byCid[sCid] = {...storeItem, changes, model};
         } else {
             this._store.byCid[sCid] = {changes: setHash, attributes: {}, model: model};
         }
@@ -75,6 +83,9 @@ export default class SimpleOrm implements OrmDriver {
     }
 
     fetch<T:Model>(model: T, setHash: { [string]: FieldValue }): T {
+        //ensure last model for immutability
+        if (this._store.byCid[model.cid.toString()])
+            model = this._store.byCid[model.cid.toString()].model;
         const sCid = model.cid.toString();
         let storeItem = this._store.byCid[sCid];
         storeItem = {
@@ -85,10 +96,10 @@ export default class SimpleOrm implements OrmDriver {
         this._store.byCid[sCid] = storeItem;
         const id = this.getId(model);
         if (id) {
-            if (!this._store.byId[model.getClass().name]){
-                this._store.byId[model.getClass().name] = {}
+            if (!this._store.byId[model.getClass().getCollection().name]) {
+                this._store.byId[model.getClass().getCollection().name] = {}
             }
-            this._store.byId[model.getClass().name][`${id}`] = model.cid
+            this._store.byId[model.getClass().getCollection().name][`${id}`] = model.cid
         }
         return model;
     }
@@ -106,6 +117,15 @@ export default class SimpleOrm implements OrmDriver {
             throw "invalid id "
         }
         return res;
+    }
+    setId<T:Model>(model: T, id:string|number): T {
+        const sCid = model.cid.toString();
+        const storeItem = this._store.byCid[sCid];
+        if (storeItem.attributes[model.getClass()._idAttribute] !== id){
+            storeItem.attributes[model.getClass()._idAttribute] = id;
+            model = model.clone()
+        }
+        return model;
     }
 
     /**
@@ -127,22 +147,32 @@ export default class SimpleOrm implements OrmDriver {
     /**
      * Upserts the model in the ORM
      */
-    async save<T:Model>(model: T, collection?:Collection<T>): Promise<T> {
-        if (!model.getId()) {
-            model.setId(this._lastId++)
+    async save<T:Model>(model: T, collection?: Collection<T> = model.getClass().getCollection()): Promise<T> {
+        //ensure last model for immutability
+        model = this._store.byCid[model.cid.toString()].model;
+        if (!this.getId(model)) {
+            model = this.setId(model, this._lastId++)
         }
         this._store.byCid[model.cid.toString()].attributes = await model.get();
-        this._store.byCid[model.cid.toString()].changes = null;
+        if (this._store.byCid[model.cid.toString()].changes){
+            this._store.byCid[model.cid.toString()].changes = null;
+            model = model.clone();
+            this._store.byCid[model.cid.toString()].model = model;
+        }
+        if (!this._store.byId[collection.name])
+            this._store.byId[collection.name] = {};
+        //$FlowFixMe
+        this._store.byId[collection.name][model.getId()] = model.cid;
         return model;
     }
 
     /**
      * Removes the model in the ORM
      */
-    async delete<T:Model>(model: T, collection?:Collection<T>): Promise<void> {
+    async delete<T:Model>(model: T, collection?: Collection<T> = model.getClass().getCollection()): Promise<void> {
         const id = this.getId(model);
-        if (id!==null){
-            delete this._store.byId[model.getClass().name][""+id];
+        if (id !== null) {
+            delete this._store.byId[collection.name]["" + id];
         }
         delete this._store.byCid[model.cid.toString()];
 

@@ -5,6 +5,7 @@ import type {OrmDriver} from "./OrmDriver";
 import {objectDif} from "./utils"
 import {Subject} from "rxjs/Subject";
 import Query from "./Query";
+import Collection from "./Collection";
 
 export type FieldValue = number | string | boolean | null | Model | FieldValue[];
 export type FieldObject = { [string]: FieldValue };
@@ -31,6 +32,7 @@ export default class Model {
     static _ormDriver: OrmDriver;
     static _attrTypes: AttrTypes = {};
     static _idAttribute: string;
+    static _collection: Collection<any>;
     static discriminator: string;
     cid: Cid;
     _subject = new Subject();
@@ -47,8 +49,19 @@ export default class Model {
         }
     }
 
+    static getCollection<T:Model>():Collection<T>{
+        if (!this._collection){
+            this._collection = new Collection(this);
+        }
+        return this._collection;
+    }
+
     static getSuperClass() {
         return Object.getPrototypeOf(this);
+    }
+
+    static async getById(id:string|number):Promise<Model|null>{
+        return this._ormDriver.getModelById(this, id);
     }
 
     static async create(attributes?: FieldObject | FieldObject[]): Promise<Model | Model[]>{
@@ -172,6 +185,10 @@ export default class Model {
         return this.getClass()._ormDriver.getId(this);
     }
 
+    getRef(): {[string]:string|number|null}{
+        return {[this.getClass()._idAttribute]:this.getId()}
+    }
+
     setId(id: string | number): Model {
         this.getClass()._ormDriver.set(this, {[this.getClass()._idAttribute]: id});
         return this;
@@ -228,10 +245,8 @@ export default class Model {
         let res = this;
         if (changes) {
             this._processChanges(currentValues, changes);
-            this.getClass()._ormDriver.set(this, setHash);
-            res = this.clone();
+            res = await this.getClass()._ormDriver.set(res, setHash);
             this._subject.next(res);
-
         }
         return res;
     }
@@ -243,8 +258,7 @@ export default class Model {
         let res = this;
         if (changes) {
             this._processChanges(currentValues, changes);
-            this.getClass()._ormDriver.fetch(this, setHash);
-            res = this.clone();
+            res = await this.getClass()._ormDriver.fetch(res, setHash);
             this._subject.next(res);
         }
         return res;

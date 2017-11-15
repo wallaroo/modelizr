@@ -4,6 +4,7 @@ import id from "../src/decorators/id"
 import Model from "../src/Model"
 import FirestoreOrm from "../src/drivers/FirestoreOrm";
 import firebase from "firebase-admin";
+import Collection from "../src/Collection";
 
 // Initialize Firebase
 const serviceAccount = require("./modelizr-test-b8856144760b.json");
@@ -16,8 +17,12 @@ const simpleorm = new FirestoreOrm(db);
 
 beforeAll(async ()=>{
     const collection = await db.collection("testmodels").get();
+    const collection2 = await db.collection("testCollection").get();
     const batch = db.batch();
     collection.forEach((cur)=>{
+        batch.delete(cur.ref)
+    });
+    collection2.forEach((cur)=>{
         batch.delete(cur.ref)
     });
     return batch.commit()
@@ -116,6 +121,7 @@ test("childmodel",async ()=>{
 });
 
 test("query", async done =>{
+    jest.setTimeout(30000);
     let res = await TestModel.find().exec();
     expect(Array.isArray(res)).toBeTruthy();
     expect(res.length).toBe(1);
@@ -142,28 +148,61 @@ test("query", async done =>{
         .limit(2);
     let runs = 0;
     let handler = jest.fn(async (models)=>{
-        if (runs ++ == 0) {
+        if (runs === 0) {
             expect(models.length).toBe(3);
             expect(await models[0].get("property")).toBe("1one");
             expect(await models[1].get("property")).toBe("2two");
             expect(await models[2].get("property")).toBe("3three");
-        }else{
+        }else if (runs === 1){
             expect(models.length).toBe(2);
             expect(await models[0].get("property")).toBe("1one");
             expect(await models[1].get("property")).toBe("3three");
-            done()
+            subscription.unsubscribe();
+            done(false);
+        }else{
+            console.log(runs)
         }
-
+        runs ++
     });
-    await query.subscribe(handler);
+    const subscription =  await query.subscribe(handler);
     expect(handler).toHaveBeenCalledTimes(1);
     await res[1].delete();
 });
 
 test("immutability", async ()=>{
     const parent = await TestModel.create({property:"one","id":1});
+    const parent11 = await parent.fetch({property:"one","id":1});
+    expect(parent).toBe(parent11);
+    const parent12 = await parent.set({property:"one","id":1});
+    expect(parent).toBe(parent12);
+    const parent13 = await TestModel.getById(1);
+    expect(parent).toBe(parent13);
     const parent1 = await TestModel.create({"id":1});
     expect(parent).toBe(parent1);
     const parent2 = await parent1.set({property:"two"});
     expect(parent2).not.toBe(parent1);
+});
+
+
+test("collection", async()=>{
+    const collection = new Collection(TestModel, {name:"testCollection", keyAttribute:"property"});
+    const parent = await TestModel.create({property:"thisisatest"});
+    const parent2 = await TestModel.create({property:"thisisanothertest"});
+    const saved = await collection.save(parent);
+    const saved21 = await parent2.save();
+    const saved22 = await collection.save(parent2);
+    const res = await collection.findByKey("thisisatest");
+    expect(saved21.getId()).toBeTruthy();
+    const res21 = await TestModel.getById(saved21.getId());
+    const res2 = await collection.findByKey("thisisanothertest");
+    expect(res).toBeTruthy();
+    expect(parent).not.toBe(res);
+    expect(saved).not.toBe(parent);
+    expect(saved).toBe(res);
+
+    expect(res21).toBe(saved21);
+    expect(saved21).not.toBe(parent2);
+    expect(saved21).toBe(saved22);
+    expect(saved22).not.toBe(parent2);
+    expect(res2).toBe(saved22);
 });

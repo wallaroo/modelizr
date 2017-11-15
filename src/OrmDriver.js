@@ -40,7 +40,7 @@ export interface OrmDriver {
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
      */
-    getModelById(model: Class<Model>, id: string | number): Promise<Model | null>;
+    getModelById<T:Model>(model: Class<T>, id: string | number,collection?:Collection<T>): Promise<T | null>;
 
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise

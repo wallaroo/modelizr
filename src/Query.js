@@ -32,7 +32,7 @@ export default class Query<T:Model> {
         }
     }
 
-    orderBy(...fields: string[]) {
+    orderBy(...fields: string[]):Query<T> {
         if (!this._orderBy) {
             this._orderBy = fields;
         } else {
@@ -41,12 +41,12 @@ export default class Query<T:Model> {
         return this;
     }
 
-    limit(number: number) {
+    limit(number: number):Query<T> {
         this._limit = number;
         return this;
     }
 
-    startAt(index: number) {
+    startAt(index: number):Query<T> {
         this._startAt = index;
         return this;
     }
