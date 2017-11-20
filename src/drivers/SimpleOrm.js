@@ -6,6 +6,7 @@ import {objectDif} from "../utils";
 import merge from "lodash.merge";
 import Query from "../Query";
 import Collection from "../Collection";
+import Subscription from "rxjs/Subscription";
 
 type StoreItem = {
     model: Model,
@@ -186,7 +187,7 @@ export default class SimpleOrm implements OrmDriver {
         return storeItem ? storeItem.changes : null;
     }
 
-    async observeQuery<T:Model>(model: Class<Model>, query: Query<T>): Promise<void> {
+    observeQuery<T:Model>(model: Class<Model>, query: Query<T>,handler:T[]=>void): Subscription {
         throw "implement me"
     }
 

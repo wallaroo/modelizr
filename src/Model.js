@@ -6,6 +6,7 @@ import {objectDif} from "./utils"
 import {Subject} from "rxjs/Subject";
 import Query from "./Query";
 import Collection from "./Collection";
+import type Subscription from "rxjs/Subscription"
 
 export type FieldValue = number | string | boolean | null | Model | FieldValue[];
 export type FieldObject = { [string]: FieldValue };
@@ -137,9 +138,9 @@ export default class Model {
         return this._ormDriver;
     }
 
-    static async observeQuery<T:Model>(query: Query<T>): Promise<void> {
+    static observeQuery<T:Model>(query: Query<T>, handler:T[] => void): Subscription {
         // $FlowFixMe
-        return this._ormDriver.observeQuery(this, query);
+        return this._ormDriver.observeQuery(this, query, handler);
     }
 
     static async executeQuery<T:Model>(query: Query<T>): Promise<T[]> {
@@ -176,6 +177,11 @@ export default class Model {
     onChange(handler: (value: string) => void) {
         return this._subject.subscribe(handler)
     }
+
+    //$FlowFixMe
+    [Symbol.observable](){
+        return this._subject;
+    };
 
     getClass(): Class<Model> {
         return this.constructor;

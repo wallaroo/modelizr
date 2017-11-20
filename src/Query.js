@@ -16,7 +16,6 @@ const whereRegexp = /^(\w*)\s?(==|>|<|>=|<=)\s?((['"]\w*['"])|(\d*))$/;
 export default class Query<T:Model> {
     model: Class<T>;
     collection: Collection<T>;
-    _subject: Subject | null;
     _orderBy: string[] | null;
     _startAt: number | null;
     _limit: number | null;
@@ -25,7 +24,7 @@ export default class Query<T:Model> {
     constructor(model: Class<T> | Collection<T>) {
         if (Model.isPrototypeOf(model)) {
             this.model = ((model: any): Class<T>);
-            this.collection = new Collection(((model: any): Class<T>));
+            this.collection = this.model.getCollection();
         }else if (model instanceof Collection){
             this.model = model.model;
             this.collection = model;
@@ -51,18 +50,8 @@ export default class Query<T:Model> {
         return this;
     }
 
-    async subscribe(handler: T[] => void): Promise<Subscription> {
-        let res;
-        if (!this._subject) {
-            this._subject = new Subject;
-            res = this._subject.subscribe(handler);
-            await this.model.observeQuery(this);
-        }else{
-            res = this._subject.subscribe(handler);
-        }
-
-        // TODO res.add(this._onUnsubscribe)
-        return res;
+    subscribe(handler: T[] => void): Subscription {
+        return this.model.observeQuery(this,handler);
     }
 
     where(field:string, operator?:Operator, value?:string):Query<T>{
@@ -93,13 +82,5 @@ export default class Query<T:Model> {
 
     async exec(): Promise<T[]> {
         return this.model.executeQuery(this);
-    }
-
-    notify(models:T[]){
-        if (this._subject){
-            this._subject.next(models);
-        }else{
-            throw "no subject"
-        }
     }
 }

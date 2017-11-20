@@ -8,9 +8,9 @@ const executeQuery = jest.fn(async (model, query)=>{
     return TestModel.create([{property:"one"},{property:"two"},{property: "three"}]);
 }).mockReturnValueOnce(["a"]);
 
-const observeQuery = jest.fn(async (model,query)=>{
-    query.notify(await model.create([{property:"four"},{property: "five"}]));
-    setTimeout(async ()=>query.notify(await model.create([{property:"six"},{property: "seven"}])),1000)
+const observeQuery = jest.fn(async (model,query, handler)=>{
+    handler(await model.create([{property:"four"},{property: "five"}]));
+    setTimeout(async ()=>handler(await model.create([{property:"six"},{property: "seven"}])),1000)
 });
 
 const simpleorm = new SimpleOrm({

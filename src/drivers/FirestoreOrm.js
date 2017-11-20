@@ -3,6 +3,7 @@ import SimpleOrm from "./SimpleOrm";
 import Model, {Cid} from "../Model";
 import Query from "../Query";
 import Collection from "../Collection";
+import type Subscription from "rxjs/Subscription"
 
 type FirestoreDoc = {
     data: void => any,
@@ -21,7 +22,7 @@ type FirestoreCollection = {
     doc: string => FirestoreDoc,
     orderBy: string => FirestoreCollection,
     add: { [string]: any } => Promise<void>,
-    onSnapshot: (QuerySnapshot => void) => void
+    onSnapshot: (QuerySnapshot => void) => void => void
 }
 type FirestoreDB = {
     collection: string => FirestoreCollection
@@ -34,22 +35,21 @@ export default class FirestoreOrm extends SimpleOrm {
         this._db = db;
     }
 
-    async observeQuery<T:Model>(model: Class<Model>, query: Query<T>): Promise<void> {
+    observeQuery<T:Model>(model: Class<Model>, query: Query<T>, handler:T[] => void): Subscription {
         let collection = this._db.collection(query.collection.name);
         collection = this.applyQuery(collection, query);
-        return new Promise((resolve) => {
-            collection.onSnapshot((snapshot) => {
+        return {
+            unsubscribe: collection.onSnapshot((snapshot) => {
                 let res = [];
                 snapshot.forEach((doc) => {
                     res.push(model.create(doc.data()));
                 });
                 // $FlowFixMe
                 Promise.all(res).then((models: Model[]) => {
-                    query.notify(models);
-                    resolve()
+                    handler(models);
                 });
             })
-        });
+        }
     }
 
     applyQuery<T:Model>(firebaseQuery: FirestoreCollection, query: Query<T>) {
@@ -93,31 +93,31 @@ export default class FirestoreOrm extends SimpleOrm {
         const id = await collection.getKey(model);
         const isModelCollection = (collection === model.getClass().getCollection());
         if (id) {
-            await this._db.collection(collection.name).doc("" + id).set(isModelCollection ? await model.get() : model.getRef() );
+            await this._db.collection(collection.name).doc("" + id).set(isModelCollection ? await model.get() : model.getRef());
         } else {
             //$FlowFixMe
             const res = await this._db.collection(collection.name).add(model.getRef());
-            await collection.setKey(model,res.id);
-            await this._db.collection(collection.name).doc(res.id).set(isModelCollection ? await model.get() : model.getRef() );
+            await collection.setKey(model, res.id);
+            await this._db.collection(collection.name).doc(res.id).set(isModelCollection ? await model.get() : model.getRef());
         }
         return super.save(model);
     }
 
 
     async getModelById<T:Model>(model: Class<T>,
-                          id: string | number,
-                          collection?: Collection<T> = model.getCollection()): Promise<T | null> {
-        const doc = await this._db.collection(collection.name).doc(""+id).get();
+                                id: string | number,
+                                collection?: Collection<T> = model.getCollection()): Promise<T | null> {
+        const doc = await this._db.collection(collection.name).doc("" + id).get();
 
         let res;
-        if (doc.exists){
+        if (doc.exists) {
             let data = doc.data();
             // get the model from simple orm using the model id and not the collection key
             const modelId = data[model._idAttribute];
 
             if (modelId) {
-                if(collection !== model.getCollection()){
-                    const modelDoc = await this._db.collection(model.getCollection().name).doc(""+modelId).get()
+                if (collection !== model.getCollection()) {
+                    const modelDoc = await this._db.collection(model.getCollection().name).doc("" + modelId).get()
                     if (modelDoc.exists) {
                         data = modelDoc.data();
                     }
@@ -129,9 +129,9 @@ export default class FirestoreOrm extends SimpleOrm {
                 res.cid = new Cid();
             }
             res = await res.fetch(data);
-        }else{
-            res = await super.getModelById(model,id);
+        } else {
+            res = await super.getModelById(model, id);
         }
-        return (res:any);
+        return (res: any);
     }
 }

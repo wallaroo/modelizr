@@ -16,8 +16,8 @@ const db = firebase.firestore();
 const simpleorm = new FirestoreOrm(db);
 
 beforeAll(async ()=>{
-    const collection = await db.collection("testmodels").get();
-    const collection2 = await db.collection("testCollection").get();
+    const collection = await db._collection("testmodels").get();
+    const collection2 = await db._collection("testCollection").get();
     const batch = db.batch();
     collection.forEach((cur)=>{
         batch.delete(cur.ref)
@@ -153,6 +153,7 @@ test("query", async done =>{
             expect(await models[0].get("property")).toBe("1one");
             expect(await models[1].get("property")).toBe("2two");
             expect(await models[2].get("property")).toBe("3three");
+            await res[1].delete();
         }else if (runs === 1){
             expect(models.length).toBe(2);
             expect(await models[0].get("property")).toBe("1one");
@@ -164,9 +165,7 @@ test("query", async done =>{
         }
         runs ++
     });
-    const subscription =  await query.subscribe(handler);
-    expect(handler).toHaveBeenCalledTimes(1);
-    await res[1].delete();
+    const subscription = query.subscribe(handler);
 });
 
 test("immutability", async ()=>{

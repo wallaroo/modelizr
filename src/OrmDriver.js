@@ -3,7 +3,7 @@ import Model, {Cid} from "./Model"
 import type {FieldValue} from "./Model";
 import Query from "./Query";
 import Collection from "./Collection";
-
+import type Subscription from "rxjs/Subscription"
 export interface OrmDriver {
     /**
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
@@ -54,5 +54,5 @@ export interface OrmDriver {
 
     executeQuery<T:Model>(model: Class<T>, query:Query<T>):Promise<T[]>;
 
-    observeQuery<T:Model>(model: Class<T>, query:Query<T>):Promise<void>;
+    observeQuery<T:Model>(model: Class<T>, query:Query<T>, handler:T[] => void): Subscription;
 }
