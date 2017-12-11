@@ -3,21 +3,28 @@ import orm from "../src/decorators/orm"
 import id from "../src/decorators/id"
 import Model from "../src/Model"
 import FirestoreOrm from "../src/drivers/FirestoreOrm";
-import firebase from "firebase-admin";
+import * as firebase from "firebase/app";
+import "firebase/auth"
+import "firebase/firestore"
 import Collection from "../src/Collection";
 
 // Initialize Firebase
-const serviceAccount = require("./modelizr-test-b8856144760b.json");
-
-firebase.initializeApp({
-    credential: firebase.credential.cert(serviceAccount)
-});
+//const serviceAccount = require("./modelizr-test-b8856144760b.json");
+var config = {
+    apiKey: "AIzaSyDNQJBogA1b7Ou5rY7Rnd3RtUAzH6ORfu8",
+    authDomain: "modelizr-test.firebaseapp.com",
+    databaseURL: "https://modelizr-test.firebaseio.com",
+    projectId: "modelizr-test",
+    storageBucket: "modelizr-test.appspot.com",
+    messagingSenderId: "790929445331"
+};
+firebase.initializeApp(config);
 const db = firebase.firestore();
 const simpleorm = new FirestoreOrm(db);
 
 beforeAll(async ()=>{
-    const collection = await db._collection("testmodels").get();
-    const collection2 = await db._collection("testCollection").get();
+    const collection = await db.collection("testmodels").get();
+    const collection2 = await db.collection("testCollection").get();
     const batch = db.batch();
     collection.forEach((cur)=>{
         batch.delete(cur.ref)

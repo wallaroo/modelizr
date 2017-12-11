@@ -6,10 +6,14 @@
   "module": "es/index.js",
   "author": "wallaroo",
   "license": "MIT",
+  "files": [
+    "es",
+    "src"
+  ],
   "scripts": {
     "test": "jest",
     "flow": "flow",
-    "build": "NODE_ENV=production babel src --out-dir es"
+    "build": "NODE_ENV=production babel src --out-dir es --source-maps"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
@@ -20,11 +24,12 @@
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "babel-preset-flow": "^6.23.0",
-    "firebase-admin": "^5.4.3",
+    "firebase": "^4.8.0",
     "flow-bin": "^0.57.3",
     "jest": "^21.2.1"
   },
   "dependencies": {
+    "babel-polyfill": "^6.26.0",
     "lodash.isplainobject": "^4.0.6",
     "lodash.merge": "^4.6.0",
     "lodash.union": "^4.6.0",
