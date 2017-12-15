@@ -134,7 +134,7 @@ export default class SimpleOrm implements OrmDriver {
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    async get<T:Model>(model: T, key: string): Promise<FieldValue> {
+    get<T:Model>(model: T, key: string): FieldValue {
         let res = this._store.byCid[model.cid.toString()];
         if (res) {
             res = (res.changes && res.changes[key]) || res.attributes[key];
@@ -146,7 +146,7 @@ export default class SimpleOrm implements OrmDriver {
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    async getAttributes<T:Model>(model: T): Promise<{ [string]: FieldValue }> {
+    getAttributes<T:Model>(model: T): Promise<{ [string]: FieldValue }> {
         let res = this._store.byCid[model.cid.toString()];
         if (res) {
             res = merge({}, res.attributes, res.changes);

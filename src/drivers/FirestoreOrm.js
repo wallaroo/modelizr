@@ -90,15 +90,15 @@ export default class FirestoreOrm extends SimpleOrm {
      * Upserts the model in the ORM
      */
     async save<T:Model>(model: T, collection?: Collection<T> = model.getClass().getCollection()): Promise<T> {
-        const id = await collection.getKey(model);
+        const id = collection.getKey(model);
         const isModelCollection = (collection === model.getClass().getCollection());
         if (id) {
-            await this._db.collection(collection.name).doc("" + id).set(isModelCollection ? await model.getAttributes() : model.getRef());
+            await this._db.collection(collection.name).doc("" + id).set(isModelCollection ? model.getAttributes() : model.getRef());
         } else {
             //$FlowFixMe
             const res = await this._db.collection(collection.name).add(model.getRef());
             await collection.setKey(model, res.id);
-            await this._db.collection(collection.name).doc(res.id).set(isModelCollection ? await model.getAttributes() : model.getRef());
+            await this._db.collection(collection.name).doc(res.id).set(isModelCollection ? model.getAttributes() : model.getRef());
         }
         return super.save(model);
     }

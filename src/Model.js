@@ -276,11 +276,11 @@ export default class Model {
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    async get<T:Model>(key: string): Promise<FieldValue> {
-        return this.getClass()._ormDriver.get(this, key);
+    get<T:Model>(key: string): FieldValue {
+        return this.getClass()._ormDriver.get(this, key) || null;
     }
 
-    async getAttributes<T:Model>(): Promise<{ [string]: FieldValue }> {
+    getAttributes<T:Model>(): { [string]: FieldValue } {
         return this.getClass()._ormDriver.getAttributes(this);
     }
 

@@ -18,12 +18,12 @@ export interface OrmDriver {
     /**
      * Gets the current value for the given property
      */
-    get<T:Model>(model: T, key: string): Promise<FieldValue>;
+    get<T:Model>(model: T, key: string): FieldValue;
 
     /**
      * Gets the current value for the given property
      */
-    getAttributes<T:Model>(model: T, key?: string): Promise<{ [string]: FieldValue }>;
+    getAttributes<T:Model>(model: T, key?: string): { [string]: FieldValue };
 
     getId(model: Model): number | string | null;
     /**
