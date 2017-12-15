@@ -79,7 +79,7 @@ test("onchange",async ()=>{
 
 test("get", async ()=>{
     let parent = await TestModel.create({child:{foo:"barzotto"}});
-    const res = await parent.get();
+    const res = await parent.getAttributes();
     expect(res.child).toBeTruthy();
     expect(res.child).toBeInstanceOf(ChildModel);
 });

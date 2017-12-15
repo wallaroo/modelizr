@@ -152,19 +152,19 @@ export default class Model {
         return new Query(this);
     }
 
-    static where<T:Model>(...args):Query<T>{
+    static where<T:Model>(...args:any[]):Query<T>{
         return (new Query(this)).where(...args);
     }
 
-    static orderBy<T:Model>(...args):Query<T>{
+    static orderBy<T:Model>(...args:any[]):Query<T>{
         return (new Query(this))._orderBy(...args);
     }
 
-    static limit<T:Model>(...args):Query<T>{
+    static limit<T:Model>(...args:any[]):Query<T>{
         return (new Query(this))._limit(...args);
     }
 
-    static startAt<T:Model>(...args):Query<T>{
+    static startAt<T:Model>(...args:any[]):Query<T>{
         return (new Query(this))._startAt(...args);
     }
 
@@ -177,6 +177,8 @@ export default class Model {
     onChange(handler: (value: string) => void) {
         return this._subject.subscribe(handler)
     }
+
+    observe = this.onChange;
 
     //$FlowFixMe
     [Symbol.observable](){
@@ -246,7 +248,7 @@ export default class Model {
      */
     async set<T:Model>(setHash: { [string]: FieldValue }): Promise<Model> {
         setHash = await this._resolve(setHash);
-        const currentValues = await this.get();
+        const currentValues = await this.getAttributes();
         const changes = objectDif(currentValues, setHash);
         let res = this;
         if (changes) {
@@ -259,7 +261,7 @@ export default class Model {
 
     async fetch<T:Model>(setHash: { [string]: FieldValue }): Promise<Model> {
         setHash = await this._resolve(setHash);
-        const currentValues = await this.get();
+        const currentValues = await this.getAttributes();
         const changes = objectDif(currentValues, setHash);
         let res = this;
         if (changes) {
@@ -274,8 +276,12 @@ export default class Model {
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    async get<T:Model>(key?: string): Promise<FieldValue | { [string]: FieldValue }> {
+    async get<T:Model>(key: string): Promise<FieldValue> {
         return this.getClass()._ormDriver.get(this, key);
+    }
+
+    async getAttributes<T:Model>(): Promise<{ [string]: FieldValue }> {
+        return this.getClass()._ormDriver.getAttributes(this);
     }
 
     getChanges(): { [string]: FieldValue } | null {

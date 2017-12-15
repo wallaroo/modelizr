@@ -17,9 +17,13 @@ export interface OrmDriver {
 
     /**
      * Gets the current value for the given property
-     * if key is null gets all properties hash
      */
-    get<T:Model>(model: T, key?: string): Promise<FieldValue | { [string]: FieldValue }>;
+    get<T:Model>(model: T, key: string): Promise<FieldValue>;
+
+    /**
+     * Gets the current value for the given property
+     */
+    getAttributes<T:Model>(model: T, key?: string): Promise<{ [string]: FieldValue }>;
 
     getId(model: Model): number | string | null;
     /**

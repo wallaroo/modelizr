@@ -73,7 +73,7 @@ export default class SimpleOrm implements OrmDriver {
         let storeItem = this._store.byCid[sCid];
         if (storeItem) {
             let changes = objectDif(storeItem.attributes, Object.assign({}, storeItem.changes, setHash));
-            if (changes){
+            if (changes) {
                 model = model.clone()
             }
             this._store.byCid[sCid] = {...storeItem, changes, model};
@@ -119,10 +119,11 @@ export default class SimpleOrm implements OrmDriver {
         }
         return res;
     }
-    setId<T:Model>(model: T, id:string|number): T {
+
+    setId<T:Model>(model: T, id: string | number): T {
         const sCid = model.cid.toString();
         const storeItem = this._store.byCid[sCid];
-        if (storeItem.attributes[model.getClass()._idAttribute] !== id){
+        if (storeItem.attributes[model.getClass()._idAttribute] !== id) {
             storeItem.attributes[model.getClass()._idAttribute] = id;
             model = model.clone()
         }
@@ -133,14 +134,22 @@ export default class SimpleOrm implements OrmDriver {
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    async get<T:Model>(model: T, key?: string): Promise<FieldValue | { [string]: FieldValue }> {
+    async get<T:Model>(model: T, key: string): Promise<FieldValue> {
         let res = this._store.byCid[model.cid.toString()];
         if (res) {
-            if (key) {
-                res = (res.changes && res.changes[key]) || res.attributes[key];
-            } else {
-                res = merge({}, res.attributes, res.changes);
-            }
+            res = (res.changes && res.changes[key]) || res.attributes[key];
+        }
+        return res;
+    }
+
+    /**
+     * Gets the current value for the given property
+     * if key is null gets all properties hash
+     */
+    async getAttributes<T:Model>(model: T): Promise<{ [string]: FieldValue }> {
+        let res = this._store.byCid[model.cid.toString()];
+        if (res) {
+            res = merge({}, res.attributes, res.changes);
         }
         return res;
     }
@@ -154,8 +163,8 @@ export default class SimpleOrm implements OrmDriver {
         if (!this.getId(model)) {
             model = this.setId(model, this._lastId++)
         }
-        this._store.byCid[model.cid.toString()].attributes = await model.get();
-        if (this._store.byCid[model.cid.toString()].changes){
+        this._store.byCid[model.cid.toString()].attributes = await model.getAttributes();
+        if (this._store.byCid[model.cid.toString()].changes) {
             this._store.byCid[model.cid.toString()].changes = null;
             model = model.clone();
             this._store.byCid[model.cid.toString()].model = model;
@@ -187,7 +196,7 @@ export default class SimpleOrm implements OrmDriver {
         return storeItem ? storeItem.changes : null;
     }
 
-    observeQuery<T:Model>(model: Class<Model>, query: Query<T>,handler:T[]=>void): Subscription {
+    observeQuery<T:Model>(model: Class<Model>, query: Query<T>, handler: T[] => void): Subscription {
         throw "implement me"
     }
 

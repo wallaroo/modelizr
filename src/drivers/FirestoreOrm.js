@@ -93,12 +93,12 @@ export default class FirestoreOrm extends SimpleOrm {
         const id = await collection.getKey(model);
         const isModelCollection = (collection === model.getClass().getCollection());
         if (id) {
-            await this._db.collection(collection.name).doc("" + id).set(isModelCollection ? await model.get() : model.getRef());
+            await this._db.collection(collection.name).doc("" + id).set(isModelCollection ? await model.getAttributes() : model.getRef());
         } else {
             //$FlowFixMe
             const res = await this._db.collection(collection.name).add(model.getRef());
             await collection.setKey(model, res.id);
-            await this._db.collection(collection.name).doc(res.id).set(isModelCollection ? await model.get() : model.getRef());
+            await this._db.collection(collection.name).doc(res.id).set(isModelCollection ? await model.getAttributes() : model.getRef());
         }
         return super.save(model);
     }

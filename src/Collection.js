@@ -34,7 +34,7 @@ class Collection<T:Model> {
         return this.getClass()._ormDriver || this.model.getOrmDriver();
     }
 
-    async getKey(model:T): Promise<string | number> {
+    async getKey(model:T): Promise<string | number | null> {
         const res = await model.get(this.keyAttribute);
         if (res && typeof res !== "number" && typeof res !== "string")
             throw "invalid key";
