@@ -1,17 +1,19 @@
-//@flow
 import {OrmDriver} from "../OrmDriver";
-import type {FieldValue} from "../Model"
+import {FieldValue,ModelClass} from "../Model"
 import Model, {Cid} from "../Model";
 import {objectDif} from "../utils";
-import merge from "lodash.merge";
+
 import Query from "../Query";
 import Collection from "../Collection";
-import Subscription from "rxjs/Subscription";
+import {ISubscription} from "rxjs/Subscription";
+import {FieldObject} from "../Model";
 
-type StoreItem = {
+const merge = require("lodash.merge");
+
+export type StoreItem = {
     model: Model,
-    attributes: { [string]: FieldValue },
-    changes: { [string]: FieldValue } | null,
+    attributes: FieldObject,
+    changes: FieldObject | null,
 }
 
 export default class SimpleOrm implements OrmDriver {
@@ -29,8 +31,8 @@ export default class SimpleOrm implements OrmDriver {
     };
 
     constructor(opts?: {
-        executeQuery: (Class<Model>, Query<Model>) => Promise<Model[]>,
-        observeQuery: (Class<Model>, Query<Model>) => void
+        executeQuery: (modelClass: ModelClass, query: Query<Model>) => Promise<Model[]>,
+        observeQuery: (modelClass: ModelClass, query: Query<Model>) => void
     }) {
         //$FlowFixMe
         Object.assign(this, opts);
@@ -39,15 +41,15 @@ export default class SimpleOrm implements OrmDriver {
     /**
      * gets the model by its id or null if doesn't exists
      */
-    async getModelById<T:Model>(model: Class<T>,
+    async getModelById<T extends Model>(model: ModelClass,
                                 id: string | number,
-                                collection?: Collection<T> = model.getCollection()): Promise<T | null> {
+                                collection: Collection<T> = model.getCollection()): Promise<T | null> {
         let res = null;
         const cid = this.getCidById(model, id);
         if (cid) {
             res = this.getModelByCid(cid);
         }
-        return (res: any);
+        return res as T;
     }
 
     /**
@@ -57,7 +59,7 @@ export default class SimpleOrm implements OrmDriver {
         return this._store.byCid[`${cid.toString()}`].model;
     }
 
-    getCidById(model: Class<Model>, id: string | number): Cid | null {
+    getCidById(model: ModelClass, id: string | number): Cid | null {
         const storeItem = this._store.byId[model.getCollection().name];
         return storeItem ? storeItem[`${id}`] : null;
     }
@@ -65,10 +67,10 @@ export default class SimpleOrm implements OrmDriver {
     /**
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
      */
-    set<T:Model>(model: T, setHash: { [string]: FieldValue }): T {
+    set<T extends Model>(model: T, setHash: FieldObject): T {
         //ensure last model for immutability
         if (this._store.byCid[model.cid.toString()])
-            model = this._store.byCid[model.cid.toString()].model;
+            model = this._store.byCid[model.cid.toString()].model as T;
         const sCid = model.cid.toString();
         let storeItem = this._store.byCid[sCid];
         if (storeItem) {
@@ -83,10 +85,10 @@ export default class SimpleOrm implements OrmDriver {
         return model;
     }
 
-    fetch<T:Model>(model: T, setHash: { [string]: FieldValue }): T {
+    fetch<T extends Model>(model: T, setHash: FieldObject): T {
         //ensure last model for immutability
         if (this._store.byCid[model.cid.toString()])
-            model = this._store.byCid[model.cid.toString()].model;
+            model = this._store.byCid[model.cid.toString()].model as T;
         const sCid = model.cid.toString();
         let storeItem = this._store.byCid[sCid];
         storeItem = {
@@ -105,7 +107,7 @@ export default class SimpleOrm implements OrmDriver {
         return model;
     }
 
-    _get(model: Model): { [string]: FieldValue } {
+    _get(model: Model): FieldObject {
         const sCid = model.cid.toString();
         const storeItem = this._store.byCid[sCid];
         return Object.assign({}, storeItem.attributes, storeItem.changes);
@@ -117,10 +119,10 @@ export default class SimpleOrm implements OrmDriver {
         if (res !== null && typeof res !== "string" && typeof res !== "number") {
             throw "invalid id "
         }
-        return res;
+        return res as number | string | null;
     }
 
-    setId<T:Model>(model: T, id: string | number): T {
+    setId<T extends Model>(model: T, id: string | number): T {
         const sCid = model.cid.toString();
         const storeItem = this._store.byCid[sCid];
         if (storeItem.attributes[model.getClass()._idAttribute] !== id) {
@@ -134,32 +136,34 @@ export default class SimpleOrm implements OrmDriver {
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    get<T:Model>(model: T, key: string): FieldValue {
-        let res = this._store.byCid[model.cid.toString()];
-        if (res) {
-            res = (res.changes && res.changes[key]) || res.attributes[key];
+    get<T extends Model>(model: T, key: string): FieldValue {
+        let storeItem = this._store.byCid[model.cid.toString()];
+        let res = null;
+        if (storeItem) {
+            res = (storeItem.changes && storeItem.changes[key]) || storeItem.attributes[key];
         }
-        return res;
+        return res as FieldValue;
     }
 
     /**
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    getAttributes<T:Model>(model: T): Promise<{ [string]: FieldValue }> {
-        let res = this._store.byCid[model.cid.toString()];
-        if (res) {
-            res = merge({}, res.attributes, res.changes);
+    getAttributes<T extends Model>(model: T): FieldObject {
+        let storeItem = this._store.byCid[model.cid.toString()];
+        let res = null;
+        if (storeItem) {
+            res = merge({}, storeItem.attributes, storeItem.changes);
         }
-        return res;
+        return res as FieldObject;
     }
 
     /**
      * Upserts the model in the ORM
      */
-    async save<T:Model>(model: T, collection?: Collection<T> = model.getClass().getCollection()): Promise<T> {
+    async save<T extends Model>(model: T, collection: Collection<T> = model.getClass().getCollection()): Promise<T> {
         //ensure last model for immutability
-        model = this._store.byCid[model.cid.toString()].model;
+        model = this._store.byCid[model.cid.toString()].model as T;
         if (!this.getId(model)) {
             model = this.setId(model, this._lastId++)
         }
@@ -179,7 +183,7 @@ export default class SimpleOrm implements OrmDriver {
     /**
      * Removes the model in the ORM
      */
-    async delete<T:Model>(model: T, collection?: Collection<T> = model.getClass().getCollection()): Promise<void> {
+    async delete<T extends Model>(model: T, collection: Collection<T> = model.getClass().getCollection()): Promise<void> {
         const id = this.getId(model);
         if (id !== null) {
             delete this._store.byId[collection.name]["" + id];
@@ -191,16 +195,16 @@ export default class SimpleOrm implements OrmDriver {
     /**
      * gets the changes from the last fetch
      */
-    getChanges(model: Model): { [string]: FieldValue } | null {
+    getChanges(model: Model): FieldObject | null {
         let storeItem = this._store.byCid[model.cid.toString()];
         return storeItem ? storeItem.changes : null;
     }
 
-    observeQuery<T:Model>(model: Class<Model>, query: Query<T>, handler: T[] => void): Subscription {
+    observeQuery<T extends Model>(model: ModelClass, query: Query<T>, handler: (array:T[]) => void): ISubscription {
         throw "implement me"
     }
 
-    async executeQuery<T:Model>(model: Class<Model>, query: Query<T>): Promise<T[]> {
+    async executeQuery<T extends Model>(model: ModelClass, query: Query<T>): Promise<T[]> {
         throw "implement me"
     }
 }

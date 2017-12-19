@@ -1,50 +1,50 @@
-// @flow
-import Model, {Cid} from "./Model"
-import type {FieldValue} from "./Model";
+import Model, {Cid, FieldObject, ModelClass} from "./Model"
+import {FieldValue} from "./Model";
 import Query from "./Query";
 import Collection from "./Collection";
-import type Subscription from "rxjs/Subscription"
+import {ISubscription} from "rxjs/Subscription"
+
 export interface OrmDriver {
     /**
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
      */
-    set<T:Model>(model: T, setHash: { [string]: FieldValue }): T;
+    set<T extends Model>(model: T, setHash: FieldObject): T;
 
     /**
      * Sets properties bypassing changes eventually pre-existing changes will be dropped
      */
-    fetch<T:Model>(model: T, setHash: { [string]: FieldValue }): T;
+    fetch<T extends Model>(model: T, setHash: FieldObject): T;
 
     /**
      * Gets the current value for the given property
      */
-    get<T:Model>(model: T, key: string): FieldValue;
+    get<T extends Model>(model: T, key: string): FieldValue;
 
     /**
      * Gets the current value for the given property
      */
-    getAttributes<T:Model>(model: T, key?: string): { [string]: FieldValue };
+    getAttributes<T extends Model>(model: T, key?: string): FieldObject;
 
     getId(model: Model): number | string | null;
     /**
      * Upserts the model in the ORM
      */
-    save<T:Model>(model: T, collection?:Collection<T>): Promise<T>;
+    save<T extends Model>(model: T, collection?:Collection<T>): Promise<T>;
 
     /**
      * Removes the model in the ORM
      */
-    delete<T:Model>(model: T, collection?:Collection<T>): Promise<void>;
+    delete<T extends Model>(model: T, collection?:Collection<T>): Promise<void>;
 
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
      */
-    getCidById(model: Class<Model>, id: string | number): Cid | null;
+    getCidById(model: ModelClass, id: string | number): Cid | null;
 
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
      */
-    getModelById<T:Model>(model: Class<T>, id: string | number,collection?:Collection<T>): Promise<T | null>;
+    getModelById<T extends Model>(model: ModelClass, id: string | number,collection?:Collection<T>): Promise<T | null>;
 
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
@@ -54,9 +54,9 @@ export interface OrmDriver {
     /**
      * gets the changes from the last fetch
      */
-    getChanges(model: Model): { [string]: FieldValue } | null;
+    getChanges(model: Model): FieldObject | null;
 
-    executeQuery<T:Model>(model: Class<T>, query:Query<T>):Promise<T[]>;
+    executeQuery<T extends Model>(model: ModelClass, query:Query<T>):Promise<T[]>;
 
-    observeQuery<T:Model>(model: Class<T>, query:Query<T>, handler:T[] => void): Subscription;
+    observeQuery<T extends Model>(model: ModelClass, query:Query<T>, handler: (array:T[]) => void): ISubscription;
 }

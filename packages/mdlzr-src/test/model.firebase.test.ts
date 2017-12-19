@@ -9,8 +9,7 @@ import "firebase/firestore"
 import Collection from "../src/Collection";
 
 // Initialize Firebase
-//const serviceAccount = require("./modelizr-test-b8856144760b.json");
-var config = {
+const config = {
     apiKey: "AIzaSyDNQJBogA1b7Ou5rY7Rnd3RtUAzH6ORfu8",
     authDomain: "modelizr-test.firebaseapp.com",
     databaseURL: "https://modelizr-test.firebaseio.com",
@@ -41,7 +40,7 @@ class ChildModel extends Model{
     @property({type:"number"})
     id;
 
-    @property({type:"string"})
+    @property({type:"string",default:"bar"})
     foo="bar";
 }
 
@@ -51,7 +50,7 @@ class TestModel extends Model{
     @property({type:"number"})
     id;
 
-    @property({type:"string"})
+    @property({type:"string",default:"default"})
     property="default";
 
     @property({type:ChildModel})
@@ -66,14 +65,14 @@ test("model type",()=>{
 });
 
 test("model save",async ()=>{
-    let model = await TestModel.create();
+    let model = await TestModel.create() as TestModel;
     expect(model.cid );
     expect(model.getChanges()).toBeTruthy();
     expect(await model.get("property")).toBe("default");
     expect(await model.set({property:"value"})).toBeInstanceOf(Model);
     expect(await model.get("property")).toBe("value");
 
-    model = await TestModel.create({id:123});
+    model = await TestModel.create({id:123}) as TestModel;
     expect(model.getChanges()).toBeNull();
 
     await model.set({property:"1one"});
@@ -84,7 +83,7 @@ test("model save",async ()=>{
 
 
 test("onchange",async ()=>{
-    let model = await TestModel.create();
+    let model = await TestModel.create() as TestModel;
     let handler = jest.fn(async (model)=>expect(await model.get("property")).toBe("pippo"));
     await model.set({property:"pluto"});
     expect(handler).toHaveBeenCalledTimes(0);
@@ -100,7 +99,7 @@ test("onchange",async ()=>{
 });
 
 test("get", async ()=>{
-    let parent = await TestModel.create({child:{foo:"barzotto"}});
+    let parent = await TestModel.create({child:{foo:"barzotto"}}) as TestModel;
     const res = await parent.getAttributes();
     expect(res.child).toBeTruthy();
     expect(res.child).toBeInstanceOf(ChildModel);
@@ -108,10 +107,10 @@ test("get", async ()=>{
 test("childmodel",async ()=>{
     const parentChangeHandler = jest.fn();
     const childChangeHandler = jest.fn();
-    let parent = await TestModel.create({child:{foo:"barzotto"}});
+    let parent = await TestModel.create({child:{foo:"barzotto"}}) as TestModel;
     expect(Object.keys(parent._subs).length).toBe(1);
     parent.onChange(parentChangeHandler);
-    const child = await parent.get("child");
+    const child = await parent.get("child") as ChildModel;
     child.onChange(childChangeHandler);
     expect(child).toBeInstanceOf(ChildModel);
     expect(childChangeHandler).toHaveBeenCalledTimes(0);
@@ -132,12 +131,12 @@ test("query", async done =>{
     let res = await TestModel.find().exec();
     expect(Array.isArray(res)).toBeTruthy();
     expect(res.length).toBe(1);
-    for (const cur of await TestModel.create([{"property":"2two"},{"property":"3three"}])){
+    for (const cur of (await TestModel.create([{"property":"2two"},{"property":"3three"}])) as TestModel[]){
         await cur.save()
     }
     res = await TestModel
         .where("property=='field'")
-        .where("property",">",1)
+        .where("property",">","1")
         .orderBy("property")
         .startAt(4)
         .limit(2)
@@ -149,7 +148,7 @@ test("query", async done =>{
 
     const query = TestModel
         .where("property=='field'")
-        .where("property",">",1)
+        .where("property",">","1")
         .orderBy("property")
         .startAt(4)
         .limit(2);
@@ -176,14 +175,14 @@ test("query", async done =>{
 });
 
 test("immutability", async ()=>{
-    const parent = await TestModel.create({property:"one","id":1});
+    const parent = await TestModel.create({property:"one","id":1}) as TestModel;
     const parent11 = await parent.fetch({property:"one","id":1});
     expect(parent).toBe(parent11);
     const parent12 = await parent.set({property:"one","id":1});
     expect(parent).toBe(parent12);
     const parent13 = await TestModel.getById(1);
     expect(parent).toBe(parent13);
-    const parent1 = await TestModel.create({"id":1});
+    const parent1 = await TestModel.create({"id":1}) as TestModel;
     expect(parent).toBe(parent1);
     const parent2 = await parent1.set({property:"two"});
     expect(parent2).not.toBe(parent1);
@@ -192,8 +191,8 @@ test("immutability", async ()=>{
 
 test("collection", async()=>{
     const collection = new Collection(TestModel, {name:"testCollection", keyAttribute:"property"});
-    const parent = await TestModel.create({property:"thisisatest"});
-    const parent2 = await TestModel.create({property:"thisisanothertest"});
+    const parent = await TestModel.create({property:"thisisatest"}) as TestModel;
+    const parent2 = await TestModel.create({property:"thisisanothertest"}) as TestModel;
     const saved = await collection.save(parent);
     const saved21 = await parent2.save();
     const saved22 = await collection.save(parent2);

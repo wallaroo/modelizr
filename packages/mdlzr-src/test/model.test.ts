@@ -3,6 +3,7 @@ import orm from "../src/decorators/orm"
 import id from "../src/decorators/id"
 import Model from "../src/Model"
 import SimpleOrm from "../src/drivers/SimpleOrm";
+import "core-js/shim"
 
 const executeQuery = jest.fn(async (model, query)=>{
     return TestModel.create([{property:"one"},{property:"two"},{property: "three"}]);
@@ -21,21 +22,21 @@ const simpleorm = new SimpleOrm({
 @orm(simpleorm)
 class ChildModel extends Model{
     @id
-    @property({type:"number"})
-    id;
+    @property()
+    id:number;
 
-    @property({type:"string"})
-    foo="bar";
+    @property({default:"bar"})
+    foo:string;
 }
 
 @orm(simpleorm)
 class TestModel extends Model{
     @id
-    @property({type:"number"})
-    id;
+    @property()
+    id:number;
 
-    @property({type:"string"})
-    property="default";
+    @property({default:"default"})
+    property:string;
 
     @property({type:ChildModel})
     child;
@@ -46,23 +47,24 @@ class TestModel extends Model{
 
 test("model type",()=>{
     expect(TestModel.getAttrTypes()["property"]).toBeTruthy();
+    expect(Model.isPrototypeOf(TestModel)).toBeTruthy();
 });
 
 test("model set",async ()=>{
-    let model = await TestModel.create();
+    let model = await TestModel.create() as TestModel;
     expect(model.cid );
     expect(model.getChanges()).toBeTruthy();
     expect(await model.get("property")).toBe("default");
     expect(await model.set({property:"value"})).toBeInstanceOf(Model);
     expect(await model.get("property")).toBe("value");
 
-    model = await TestModel.create({id:123});
+    model = await TestModel.create({id:123}) as TestModel;
     expect(model.getChanges()).toBeNull();
 });
 
 
 test("onchange",async ()=>{
-    let model = await TestModel.create();
+    let model = await TestModel.create() as TestModel;
     let handler = jest.fn(async (model)=>expect(await model.get("property")).toBe("pippo"));
     await model.set({property:"pluto"});
     expect(handler).toHaveBeenCalledTimes(0);
@@ -78,7 +80,7 @@ test("onchange",async ()=>{
 });
 
 test("get", async ()=>{
-    let parent = await TestModel.create({child:{foo:"barzotto"}});
+    let parent = await TestModel.create({child:{foo:"barzotto"}}) as TestModel;
     const res = await parent.getAttributes();
     expect(res.child).toBeTruthy();
     expect(res.child).toBeInstanceOf(ChildModel);
@@ -86,10 +88,10 @@ test("get", async ()=>{
 test("childmodel",async ()=>{
     const parentChangeHandler = jest.fn();
     const childChangeHandler = jest.fn();
-    let parent = await TestModel.create({child:{foo:"barzotto"}});
+    let parent = await TestModel.create({child:{foo:"barzotto"}}) as TestModel;
     expect(Object.keys(parent._subs).length).toBe(1);
     parent.onChange(parentChangeHandler);
-    const child = await parent.get("child");
+    const child = await parent.get("child") as ChildModel;
     child.onChange(childChangeHandler);
     expect(child).toBeInstanceOf(ChildModel);
     expect(childChangeHandler).toHaveBeenCalledTimes(0);
@@ -112,7 +114,7 @@ test("query", async done =>{
     res = await TestModel
         .find()
         .where("property=='field'")
-        .where("property",">",1)
+        .where("property",">","1")
         .orderBy("property")
         .startAt(4)
         .limit(2)
@@ -122,10 +124,10 @@ test("query", async done =>{
     expect(await res[1].get("property")).toBe("two");
     expect(await res[2].get("property")).toBe("three");
 
-    res = TestModel
+    let q = TestModel
         .find()
         .where("property=='field'")
-        .where("property",">",1)
+        .where("property",">","1")
         .orderBy("property")
         .startAt(4)
         .limit(2);
@@ -143,13 +145,13 @@ test("query", async done =>{
         }
 
     });
-    await res.subscribe(handler);
+    await q.subscribe(handler);
     expect(handler).toHaveBeenCalledTimes(1);
 });
 
 test("immutability", async ()=>{
-    const parent = await TestModel.create({property:"one","id":1});
-    const parent1 = await TestModel.create({"id":1});
+    const parent = await TestModel.create({property:"one","id":1}) as TestModel;
+    const parent1 = await TestModel.create({"id":1}) as TestModel;
     expect(parent).toBe(parent1);
     const parent2 = await parent1.set({property:"two"});
     expect(parent2).not.toBe(parent1);

@@ -1,21 +1,22 @@
-//@flow
-import Model from "./Model";
-import pluralize from "pluralize";
-import Query from "./Query";
-import type {OrmDriver} from "./OrmDriver";
+import Model, {ModelClass} from "./Model";
 
-type Opts<T:Model> = {
+import Query from "./Query";
+import {OrmDriver} from "./OrmDriver";
+import {Operator} from "./Query";
+const pluralize = require("pluralize");
+
+export type Opts<T extends Model> = {
     name?: string,
     keyAttribute?: string
 }
 
-class Collection<T:Model> {
+class Collection<T extends Model> {
     name: string;
-    model: Class<T>;
+    model: ModelClass;
     keyAttribute: string;
     static _ormDriver:OrmDriver;
 
-    constructor(model:Class<T>,{name, keyAttribute}: Opts<T> = {}) {
+    constructor(model:ModelClass,{name, keyAttribute}: Opts<T> = {}) {
         this.model = model;
 
         if (name)
@@ -38,10 +39,10 @@ class Collection<T:Model> {
         const res = model.get(this.keyAttribute);
         if (res !== null && typeof res !== "number" && typeof res !== "string")
             throw "invalid key ";
-        return res;
+        return res as string | number | null;
     }
     async setKey(model:T, key:string): Promise<T> {
-        return  model.set({[this.keyAttribute]:key});
+        return  model.set<T>({[this.keyAttribute]:key});
     }
 
     async save(...models: Array<T>): Promise<T|Array<T>> {
@@ -70,24 +71,24 @@ class Collection<T:Model> {
         return this.getOrm().getModelById(this.model, key, this);
     }
 
-    where(...args: Array<*>): Query<T> {
-        return this.find().where(...args);
+    where(field:string, operator?:Operator, value?:string): Query<T> {
+        return this.find().where(field, operator, value);
     }
 
-    orderBy(...args: Array<*>): Query<T> {
+    orderBy(...args: string[]): Query<T> {
         return this.find().orderBy(...args);
     }
 
-    limit(...args: Array<*>): Query<T> {
-        return this.find().limit(...args);
+    limit(number:number): Query<T> {
+        return this.find().limit(number);
     }
 
-    startAt(...args: Array<*>): Query<T> {
-        return this.find().startAt(...args);
+    startAt(number:number): Query<T> {
+        return this.find().startAt(number);
     }
 
-    getClass(): Class<Collection<T>> {
-        return this.constructor;
+    getClass(): typeof Collection {
+        return this.constructor as typeof Collection;
     }
 }
 

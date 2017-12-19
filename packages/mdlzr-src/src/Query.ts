@@ -1,10 +1,9 @@
-//@flow
-import {Subject} from "rxjs/Subject"
-import type Subscription from "rxjs/Subscription"
-import Model from "./Model"
-import union from "lodash.union"
+const union = require("lodash.union");
+import {ISubscription} from "rxjs/Subscription"
+import Model,{ModelClass} from "./Model"
+
 import Collection from "./Collection";
-type Operator = "==" | ">=" | ">" | "<" | "<=";
+export type Operator = "==" | ">=" | ">" | "<" | "<=";
 type WhereClause = {
     field:string,
     operator: Operator,
@@ -13,17 +12,17 @@ type WhereClause = {
 
 const whereRegexp = /^(\w*)\s?(==|>|<|>=|<=)\s?((['"]\w*['"])|(\d*))$/;
 
-export default class Query<T:Model> {
-    model: Class<T>;
+export default class Query<T extends Model> {
+    model: ModelClass;
     collection: Collection<T>;
     _orderBy: string[] | null;
     _startAt: number | null;
     _limit: number | null;
-    _whereClauses: WhereClause[] | null;
+    private _whereClauses: WhereClause[] | null;
 
-    constructor(model: Class<T> | Collection<T>) {
+    constructor(model: ModelClass | Collection<T>) {
         if (Model.isPrototypeOf(model)) {
-            this.model = ((model: any): Class<T>);
+            this.model = model as ModelClass;
             this.collection = this.model.getCollection();
         }else if (model instanceof Collection){
             this.model = model.model;
@@ -50,7 +49,7 @@ export default class Query<T:Model> {
         return this;
     }
 
-    subscribe(handler: T[] => void): Subscription {
+    subscribe(handler: (array:T[]) => void): ISubscription {
         return this.model.observeQuery(this,handler);
     }
 
@@ -59,11 +58,11 @@ export default class Query<T:Model> {
         if (!operator){
             const match = field.match(whereRegexp);
             if (!match) throw "wrong expression syntax";
-            clause = (({
+            clause = {
                 field:match[1],
-                operator:match[2],
+                operator:match[2] as Operator,
                 value:match[4]||parseInt(match[3]),
-            }:any):WhereClause)
+            }
         }else if (value){
             clause = {
                 field,

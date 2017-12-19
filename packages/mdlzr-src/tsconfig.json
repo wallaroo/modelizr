@@ -1,0 +1,14 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "noImplicitAny" : true,
+    "target": "es2017",
+    "declaration": true,
+    "outDir": "../mdlzr-dist/",
+    "lib": ["dom", "es2017","es2015"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "moduleResolution": "node"
+  },
+  "include": ["src/**/*.ts"]
+}

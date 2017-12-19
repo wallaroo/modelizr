@@ -1,20 +1,22 @@
-// @flow
-import merge from "lodash.merge"
-import isPlainObject from "lodash.isplainobject"
-import type {OrmDriver} from "./OrmDriver";
+import {OrmDriver} from "./OrmDriver";
 import {objectDif} from "./utils"
 import {Subject} from "rxjs/Subject";
 import Query from "./Query";
 import Collection from "./Collection";
-import type Subscription from "rxjs/Subscription"
+import {ISubscription} from "rxjs/Subscription";
+import {Operator} from "./Query";
 
-export type FieldValue = number | string | boolean | null | Model | FieldValue[];
-export type FieldObject = { [string]: FieldValue };
+const merge = require("lodash.merge");
+const isPlainObject = require("lodash.isplainobject");
+
+export type ModelClass = typeof Model;
+export type FieldValue = number | string | boolean | null | Model | number[] | string[] | boolean[] | Model[];
+export type FieldObject = { [key: string]: FieldValue | FieldObject};
 export type AttrType = {
-    type: "number" | "string" | "boolean" | Class<Model> | [Class<Model>],
-    default: FieldValue
+    type?: "number" | "string" | "boolean" | ModelClass | [ModelClass],
+    default?: FieldValue
 }
-export type AttrTypes = { [string]: AttrType };
+export type AttrTypes = { [key:string]: AttrType };
 
 export class Cid {
     static lastCid = 0;
@@ -37,12 +39,11 @@ export default class Model {
     static discriminator: string;
     cid: Cid;
     _subject = new Subject();
-    _subs = {};
+    _subs:{[k:string]:ISubscription} = {};
 
     static getAttrTypes(): AttrTypes {
         const superClass = this.getSuperClass();
         if (Model.isPrototypeOf(superClass)) {
-            // $FlowFixMe
             return merge({}, superClass.getAttrTypes(), this._attrTypes);
         }
         else {
@@ -50,7 +51,7 @@ export default class Model {
         }
     }
 
-    static getCollection<T:Model>():Collection<T>{
+    static getCollection<T extends Model>():Collection<T>{
         if (!this._collection){
             this._collection = new Collection(this);
         }
@@ -65,30 +66,30 @@ export default class Model {
         return this._ormDriver.getModelById(this, id);
     }
 
-    static async create(attributes?: FieldObject | FieldObject[]): Promise<Model | Model[]>{
+    static async create<T extends Model>(attributes?: FieldObject | FieldObject[]): Promise<T | T[]>{
         if (Array.isArray(attributes)){
-            let res:Model[] = [];
+            let res:T[] = [];
             for(const cursor of attributes){
-                res.push(await (this.create(cursor):any));
+                res.push(await this.create(cursor) as T);
             }
             return res;
         }else {
-            let res: Model|null = null;
+            let res: T = null;
             const id = attributes && attributes[this._idAttribute];
             if (id){
-                res = await this._ormDriver.getModelById(this, ((id:any):string|number));
+                res = await this._ormDriver.getModelById<T>(this, (id as string|number));
             }
             if (!res) {
                 if (this.discriminator) {
                     throw "implement me";
                 }
                 else {
-                    res = new this();
+                    res = new this() as T;
                     res.cid = new Cid();
                 }
             }
 
-            let defaults = {};
+            let defaults:{[key:string]:FieldValue} = {};
             for (let prop of Object.keys(this.getAttrTypes())) {
                 let attrType = this.getAttrTypes()[prop];
                 if (attrType.default)
@@ -103,9 +104,9 @@ export default class Model {
         }
     }
 
-    static async _resolve(setHash: { [string]: FieldValue }, owner:Model): Promise<{ [string]: FieldValue }> {
+    static async _resolve(setHash: FieldObject, owner:Model): Promise<FieldObject> {
         const attrTypes = this.getAttrTypes();
-        const res = {};
+        const res:FieldObject = {};
         for (const attrName of Object.keys(attrTypes)) {
             const attrType = attrTypes[attrName];
             const value = setHash[attrName];
@@ -114,14 +115,13 @@ export default class Model {
                 if (Model.isPrototypeOf(attrType.type)) {
                     if (value === null){
                         res[attrName] = value;
-                    }else if (value instanceof attrType.type) {
+                    }else if (typeof attrType.type === "function" && value instanceof attrType.type) {
                         res[attrName] = value;
                     }else if (isPlainObject(value)) {
-                        if (attrType.type.discriminator) {
+                        if ((attrType.type as ModelClass).discriminator) {
                             throw "implement me"
                         } else {
-                            //$FlowFixMe
-                            res[attrName] = await attrType.type.create(value);
+                            res[attrName] = await (attrType.type as ModelClass).create(value as FieldObject);
                         }
                     } else {
                         throw `invalid type of ${+value}; expecting ${+attrType.type}`
@@ -138,62 +138,61 @@ export default class Model {
         return this._ormDriver;
     }
 
-    static observeQuery<T:Model>(query: Query<T>, handler:T[] => void): Subscription {
+    static observeQuery<T extends Model>(query: Query<T>, handler:(array:T[]) => void): ISubscription {
         // $FlowFixMe
         return this._ormDriver.observeQuery(this, query, handler);
     }
 
-    static async executeQuery<T:Model>(query: Query<T>): Promise<T[]> {
+    static async executeQuery<T extends Model>(query: Query<T>): Promise<T[]> {
         // $FlowFixMe
         return this._ormDriver.executeQuery(this, query);
     }
 
-    static find<T:Model>():Query<T>{
+    static find<T extends Model>():Query<T>{
         return new Query(this);
     }
 
-    static where<T:Model>(...args:any[]):Query<T>{
-        return (new Query(this)).where(...args);
+    static where<T extends Model>(field:string, operator?:Operator, value?:string):Query<T>{
+        return (new Query<T>(this)).where(field, operator, value);
     }
 
-    static orderBy<T:Model>(...args:any[]):Query<T>{
-        return (new Query(this))._orderBy(...args);
+    static orderBy<T extends Model>(...fields: string[]):Query<T>{
+        return (new Query<T>(this)).orderBy(...fields);
     }
 
-    static limit<T:Model>(...args:any[]):Query<T>{
-        return (new Query(this))._limit(...args);
+    static limit<T extends Model>(number: number):Query<T>{
+        return (new Query<T>(this)).limit(number);
     }
 
-    static startAt<T:Model>(...args:any[]):Query<T>{
-        return (new Query(this))._startAt(...args);
+    static startAt<T extends Model>(number: number):Query<T>{
+        return (new Query<T>(this)).startAt(number);
     }
 
 
-    async _resolve(setHash: { [string]: FieldValue }): { [string]: FieldValue } {
+    async _resolve(setHash: FieldObject): Promise<FieldObject> {
         return this.getClass()._resolve(setHash, this);
     }
 
 
-    onChange(handler: (value: string) => void) {
+    onChange(handler: (value: string) => void):ISubscription {
         return this._subject.subscribe(handler)
     }
 
     observe = this.onChange;
 
-    //$FlowFixMe
-    [Symbol.observable](){
-        return this._subject;
-    };
+    // [Symbol.observable](){
+    //     return this._subject;
+    // };
 
-    getClass(): Class<Model> {
-        return this.constructor;
+    getClass(): ModelClass {
+        return this.constructor as ModelClass;
     }
 
     getId(): string | number | null {
         return this.getClass()._ormDriver.getId(this);
     }
 
-    getRef(): {[string]:string|number|null}{
+    getRef(): {[k:string]:string|number|null}{
         return {[this.getClass()._idAttribute]:this.getId()}
     }
 
@@ -202,55 +201,52 @@ export default class Model {
         return this;
     }
 
-    _processChanges(current:{ [string]: FieldValue }, next:{ [string]: FieldValue }):void{
+    _processChanges(current:FieldObject, next:FieldObject):void{
         const attrTypes = this.getClass().getAttrTypes();
         for (const attrName of Object.keys(next)){
             const attr = attrTypes[attrName];
 
             if(Model.isPrototypeOf(attr.type)){
-                if (current
-                    && current[attrName]
+                const curr = current as {[k:string]:Model};
+                const nxt = next as {[k:string]:Model};
+                if (curr
+                    && curr[attrName]
                     && (
                         !next[attrName]
-                        // $FlowFixMe
-                        || current[attrName].cid.toString() !== next[attrName].cid.toString()
+                        || curr[attrName].cid.toString() !== nxt[attrName].cid.toString()
                     )
                 ){
-                    // $FlowFixMe
-                    this._subs[current[attrName].cid.toString()].unsubscribe();
-                    // $FlowFixMe
-                    this._subs[current[attrName].cid.toString()] = null;
+                    this._subs[curr[attrName].cid.toString()].unsubscribe();
+                    this._subs[curr[attrName].cid.toString()] = null;
                 }
-                if (next[attrName]
+                if (nxt[attrName]
                     && (
-                        !current
-                        || !current[attrName]
-                        // $FlowFixMe
-                        || current[attrName].cid.toString() !== next[attrName].cid.toString()
+                        !curr
+                        || !curr[attrName]
+                        || curr[attrName].cid.toString() !== nxt[attrName].cid.toString()
                     )){
-                    // $FlowFixMe
-                    this._subs[next[attrName].cid.toString()] = next[attrName]._subject.subscribe(this._subject);
+                    this._subs[nxt[attrName].cid.toString()] = nxt[attrName]._subject.subscribe(this._subject);
                 }
 
             }
         }
     }
 
-    clone():Model{
+    clone<T extends Model>():T{
         const res = new (this.getClass())();
         res.cid = this.cid;
         res._subject = this._subject;
-        return res;
+        return res as T;
     }
 
     /**
      * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
      */
-    async set<T:Model>(setHash: { [string]: FieldValue }): Promise<Model> {
+    async set<T extends Model>(setHash: FieldObject): Promise<T> {
         setHash = await this._resolve(setHash);
         const currentValues = await this.getAttributes();
         const changes = objectDif(currentValues, setHash);
-        let res = this;
+        let res = this as any;
         if (changes) {
             this._processChanges(currentValues, changes);
             res = await this.getClass()._ormDriver.set(res, setHash);
@@ -259,11 +255,11 @@ export default class Model {
         return res;
     }
 
-    async fetch<T:Model>(setHash: { [string]: FieldValue }): Promise<Model> {
+    async fetch<T extends Model>(setHash: FieldObject): Promise<T> {
         setHash = await this._resolve(setHash);
         const currentValues = await this.getAttributes();
         const changes = objectDif(currentValues, setHash);
-        let res = this;
+        let res = this as any;
         if (changes) {
             this._processChanges(currentValues, changes);
             res = await this.getClass()._ormDriver.fetch(res, setHash);
@@ -276,15 +272,15 @@ export default class Model {
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    get<T:Model>(key: string): FieldValue {
+    get<T extends Model>(key: string): FieldValue {
         return this.getClass()._ormDriver.get(this, key) || null;
     }
 
-    getAttributes<T:Model>(): { [string]: FieldValue } {
+    getAttributes<T extends Model>(): FieldObject {
         return this.getClass()._ormDriver.getAttributes(this);
     }
 
-    getChanges(): { [string]: FieldValue } | null {
+    getChanges(): FieldObject | null {
         return this.getClass()._ormDriver.getChanges(this);
     }
 
