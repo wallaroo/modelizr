@@ -2,5 +2,5 @@ node_modules
 .idea
 es
 /coverage/
-/packages/mdlzr-dist/**.ts
-/packages/mdlzr-dist/**.js
+/packages/mdlzr-dist/**/*.js
+/packages/mdlzr-dist/**/*.ts
