@@ -1,4 +1,6 @@
 import "core-js/shim"
-import Model from "./Model"
-export default Model;
+export * from "./Model"
+export {default as Model} from "./Model"
+export {default as Query} from "./Query"
+export {default as Collection} from "./Collection"
 export * from "./decorators"
