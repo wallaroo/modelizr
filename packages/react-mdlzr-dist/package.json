@@ -1,0 +1,31 @@
+{
+  "name": "react-mdlzr",
+  "version": "0.1.0",
+  "description": "HOC to use with mdlzr",
+  "main": "index.js",
+  "module": "index.js",
+  "author": "wallaroo",
+  "license": "ISC",
+  "scripts": {
+    "link": "npm link --production"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wallaroo/mdlzr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wallaroo/mdlzr/issues"
+  },
+  "homepage": "https://github.com/wallaroo/mdlzr#readme",
+  "devDependencies": {
+    "react-mdlzr-src": "0.1.0"
+  },
+  "peerDependencies": {
+    "react": "16.x.x|15.x.x",
+    "react-dom": "16.x.x|15.x.x",
+    "mdlzr": "^0.1.0"
+  },
+  "dependencies": {
+    "lodash.pick": "^4.4.0"
+  }
+}

@@ -1,5 +1,19 @@
 {
 	"devDependencies": {
 		"lerna": "^2.5.1"
-	}
+	},
+	"scripts": {
+		"bootstrap":"lerna bootstrap",
+		"link":"lerna run link"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/wallaroo/mdlzr.git"
+	},
+	"author": "wallaroo",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/wallaroo/mdlzr/issues"
+	},
+	"homepage": "https://github.com/wallaroo/mdlzr#readme"
 }

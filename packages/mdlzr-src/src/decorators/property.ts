@@ -1,10 +1,16 @@
 import {AttrType} from "../Model";
 import "reflect-metadata";
-export default (descriptor:AttrType = {default:null,type:null})=>function property(target:any, key:string):void{
+
+export default (descriptor: AttrType = {
+    default: null,
+    type: null,
+    readOnly: false,
+    required: false
+}) => function property(target: any, key: string): void {
     let def = target[key];
-    const type = Reflect.getMetadata("design:type",target, key);
-    if (type != Object){
-        switch (type){
+    const type = Reflect.getMetadata("design:type", target, key);
+    if (type != Object) {
+        switch (type) {
             case Number:
                 descriptor.type = "number";
                 break;
@@ -14,14 +20,17 @@ export default (descriptor:AttrType = {default:null,type:null})=>function proper
             case Boolean:
                 descriptor.type = "boolean";
                 break;
+            case Date:
+                descriptor.type = "date";
+                break;
             default:
                 descriptor.type = type;
         }
     }
     if (def !== undefined)
         descriptor.default = def;
-    if(!target.getClass().hasOwnProperty("_attrTypes")) {
+    if (!target.getClass().hasOwnProperty("_attrTypes")) {
         target.getClass()._attrTypes = {}
     }
-    target.getClass()._attrTypes[key]=descriptor;
+    target.getClass()._attrTypes[key] = descriptor;
 }

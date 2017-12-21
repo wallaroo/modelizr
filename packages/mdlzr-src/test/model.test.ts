@@ -26,7 +26,7 @@ class ChildModel extends Model{
     id:number;
 
     @property({default:"bar"})
-    foo:string;
+    readonly foo:string;
 }
 
 @orm(simpleorm)

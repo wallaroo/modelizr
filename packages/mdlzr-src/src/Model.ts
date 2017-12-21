@@ -11,12 +11,18 @@ const isPlainObject = require("lodash.isplainobject");
 
 export type ModelClass = typeof Model;
 export type FieldValue = number | string | boolean | null | Model | number[] | string[] | boolean[] | Model[];
-export type FieldObject = { [key: string]: FieldValue | FieldObject};
+export type FieldObject = { [key: string]: FieldValue | FieldObject };
 export type AttrType = {
-    type?: "number" | "string" | "boolean" | ModelClass | [ModelClass],
-    default?: FieldValue
+    type?: "number" | "string" | "boolean" | "date" | "object" | ModelClass | [ModelClass],
+    default?: FieldValue,
+    readOnly?: boolean,
+    required?: boolean
 }
-export type AttrTypes = { [key:string]: AttrType };
+export type AttrTypes = { [key: string]: AttrType };
+export type IObservable = {
+    observe: (handler: (value: any) => void) => ISubscription
+}
+export type ISubscription = ISubscription;
 
 export class Cid {
     static lastCid = 0;
@@ -31,7 +37,7 @@ export class Cid {
     }
 }
 
-export default class Model {
+export default class Model implements IObservable {
     static _ormDriver: OrmDriver;
     static _attrTypes: AttrTypes = {};
     static _idAttribute: string;
@@ -39,7 +45,7 @@ export default class Model {
     static discriminator: string;
     cid: Cid;
     _subject = new Subject();
-    _subs:{[k:string]:ISubscription} = {};
+    _subs: { [k: string]: ISubscription } = {};
 
     static getAttrTypes(): AttrTypes {
         const superClass = this.getSuperClass();
@@ -51,8 +57,8 @@ export default class Model {
         }
     }
 
-    static getCollection<T extends Model>():Collection<T>{
-        if (!this._collection){
+    static getCollection<T extends Model>(): Collection<T> {
+        if (!this._collection) {
             this._collection = new Collection(this);
         }
         return this._collection;
@@ -62,22 +68,22 @@ export default class Model {
         return Object.getPrototypeOf(this);
     }
 
-    static async getById(id:string|number):Promise<Model|null>{
+    static async getById(id: string | number): Promise<Model | null> {
         return this._ormDriver.getModelById(this, id);
     }
 
-    static async create<T extends Model>(attributes?: FieldObject | FieldObject[]): Promise<T | T[]>{
-        if (Array.isArray(attributes)){
-            let res:T[] = [];
-            for(const cursor of attributes){
+    static async create<T extends Model>(attributes?: FieldObject | FieldObject[]): Promise<T | T[]> {
+        if (Array.isArray(attributes)) {
+            let res: T[] = [];
+            for (const cursor of attributes) {
                 res.push(await this.create(cursor) as T);
             }
             return res;
-        }else {
+        } else {
             let res: T = null;
             const id = attributes && attributes[this._idAttribute];
-            if (id){
-                res = await this._ormDriver.getModelById<T>(this, (id as string|number));
+            if (id) {
+                res = await this._ormDriver.getModelById<T>(this, (id as string | number));
             }
             if (!res) {
                 if (this.discriminator) {
@@ -89,7 +95,7 @@ export default class Model {
                 }
             }
 
-            let defaults:{[key:string]:FieldValue} = {};
+            let defaults: { [key: string]: FieldValue } = {};
             for (let prop of Object.keys(this.getAttrTypes())) {
                 let attrType = this.getAttrTypes()[prop];
                 if (attrType.default)
@@ -104,20 +110,20 @@ export default class Model {
         }
     }
 
-    static async _resolve(setHash: FieldObject, owner:Model): Promise<FieldObject> {
+    static async _resolve(setHash: FieldObject, owner: Model): Promise<FieldObject> {
         const attrTypes = this.getAttrTypes();
-        const res:FieldObject = {};
+        const res: FieldObject = {};
         for (const attrName of Object.keys(attrTypes)) {
             const attrType = attrTypes[attrName];
             const value = setHash[attrName];
 
             if (value !== undefined) {
                 if (Model.isPrototypeOf(attrType.type)) {
-                    if (value === null){
+                    if (value === null) {
                         res[attrName] = value;
-                    }else if (typeof attrType.type === "function" && value instanceof attrType.type) {
+                    } else if (typeof attrType.type === "function" && value instanceof attrType.type) {
                         res[attrName] = value;
-                    }else if (isPlainObject(value)) {
+                    } else if (isPlainObject(value)) {
                         if ((attrType.type as ModelClass).discriminator) {
                             throw "implement me"
                         } else {
@@ -134,11 +140,11 @@ export default class Model {
         return res;
     }
 
-    static getOrmDriver():OrmDriver{
+    static getOrmDriver(): OrmDriver {
         return this._ormDriver;
     }
 
-    static observeQuery<T extends Model>(query: Query<T>, handler:(array:T[]) => void): ISubscription {
+    static observeQuery<T extends Model>(query: Query<T>, handler: (array: T[]) => void): ISubscription {
         // $FlowFixMe
         return this._ormDriver.observeQuery(this, query, handler);
     }
@@ -148,23 +154,23 @@ export default class Model {
         return this._ormDriver.executeQuery(this, query);
     }
 
-    static find<T extends Model>():Query<T>{
+    static find<T extends Model>(): Query<T> {
         return new Query(this);
     }
 
-    static where<T extends Model>(field:string, operator?:Operator, value?:string):Query<T>{
+    static where<T extends Model>(field: string, operator?: Operator, value?: string): Query<T> {
         return (new Query<T>(this)).where(field, operator, value);
     }
 
-    static orderBy<T extends Model>(...fields: string[]):Query<T>{
+    static orderBy<T extends Model>(...fields: string[]): Query<T> {
         return (new Query<T>(this)).orderBy(...fields);
     }
 
-    static limit<T extends Model>(number: number):Query<T>{
+    static limit<T extends Model>(number: number): Query<T> {
         return (new Query<T>(this)).limit(number);
     }
 
-    static startAt<T extends Model>(number: number):Query<T>{
+    static startAt<T extends Model>(number: number): Query<T> {
         return (new Query<T>(this)).startAt(number);
     }
 
@@ -174,7 +180,7 @@ export default class Model {
     }
 
 
-    onChange(handler: (value: string) => void):ISubscription {
+    onChange(handler: (value: string) => void): ISubscription {
         return this._subject.subscribe(handler)
     }
 
@@ -192,8 +198,8 @@ export default class Model {
         return this.getClass()._ormDriver.getId(this);
     }
 
-    getRef(): {[k:string]:string|number|null}{
-        return {[this.getClass()._idAttribute]:this.getId()}
+    getRef(): { [k: string]: string | number | null } {
+        return {[this.getClass()._idAttribute]: this.getId()}
     }
 
     setId(id: string | number): Model {
@@ -201,21 +207,21 @@ export default class Model {
         return this;
     }
 
-    _processChanges(current:FieldObject, next:FieldObject):void{
+    _processChanges(current: FieldObject, next: FieldObject): void {
         const attrTypes = this.getClass().getAttrTypes();
-        for (const attrName of Object.keys(next)){
+        for (const attrName of Object.keys(next)) {
             const attr = attrTypes[attrName];
 
-            if(Model.isPrototypeOf(attr.type)){
-                const curr = current as {[k:string]:Model};
-                const nxt = next as {[k:string]:Model};
+            if (Model.isPrototypeOf(attr.type)) {
+                const curr = current as { [k: string]: Model };
+                const nxt = next as { [k: string]: Model };
                 if (curr
                     && curr[attrName]
                     && (
                         !next[attrName]
                         || curr[attrName].cid.toString() !== nxt[attrName].cid.toString()
                     )
-                ){
+                ) {
                     this._subs[curr[attrName].cid.toString()].unsubscribe();
                     this._subs[curr[attrName].cid.toString()] = null;
                 }
@@ -224,7 +230,7 @@ export default class Model {
                         !curr
                         || !curr[attrName]
                         || curr[attrName].cid.toString() !== nxt[attrName].cid.toString()
-                    )){
+                    )) {
                     this._subs[nxt[attrName].cid.toString()] = nxt[attrName]._subject.subscribe(this._subject);
                 }
 
@@ -232,7 +238,7 @@ export default class Model {
         }
     }
 
-    clone<T extends Model>():T{
+    clone<T extends Model>(): T {
         const res = new (this.getClass())();
         res.cid = this.cid;
         res._subject = this._subject;
@@ -286,11 +292,11 @@ export default class Model {
 
     hasChanges = this.getChanges;
 
-    async save():Promise<Model>{
+    async save(): Promise<Model> {
         return this.getClass()._ormDriver.save(this);
     }
 
-    async delete():Promise<void>{
+    async delete(): Promise<void> {
         return this.getClass()._ormDriver.delete(this);
     }
 }
