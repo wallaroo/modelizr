@@ -109,9 +109,9 @@ export default class FirestoreOrm extends SimpleOrm {
             await
                 this._db.collection(collection.name).doc("" + id).set(isModelCollection ? model.getAttributes() : model.getRef());
         } else {
-            const res = await this._db.collection(collection.name).add(model.getRef());
+            const res = await this._db.collection(model.getClass().getCollection().name).add(model.getAttributes());
             await
-                collection.setKey(model, res.id);
+                model.getClass().getCollection().setKey(model, res.id);
             await
                 this._db.collection(collection.name).doc(res.id).set(isModelCollection ? model.getAttributes() : model.getRef());
         }

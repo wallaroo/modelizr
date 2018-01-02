@@ -4,7 +4,8 @@
 	},
 	"scripts": {
 		"bootstrap":"lerna bootstrap",
-		"link":"lerna run link"
+		"link":"lerna run link",
+		"test":"lerna run test"
 	},
 	"repository": {
 		"type": "git",
