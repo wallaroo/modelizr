@@ -3,9 +3,11 @@
 		"lerna": "^2.5.1"
 	},
 	"scripts": {
-		"bootstrap":"lerna bootstrap",
-		"link":"lerna run link",
-		"test":"lerna run test"
+		"bootstrap": "lerna bootstrap",
+		"link": "lerna run link",
+		"build": "lerna run prepare --stream",
+		"test": "lerna run test --stream",
+		"lerna": "lerna"
 	},
 	"repository": {
 		"type": "git",

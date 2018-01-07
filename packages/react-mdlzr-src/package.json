@@ -9,7 +9,6 @@
     "src/"
   ],
   "scripts": {
-    "test": "jest",
     "prepare": "tsc"
   },
   "devDependencies": {

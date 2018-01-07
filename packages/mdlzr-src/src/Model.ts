@@ -16,7 +16,11 @@ export type AttrType = {
     type?: "number" | "string" | "boolean" | "date" | "object" | ModelClass | [ModelClass],
     default?: FieldValue,
     readOnly?: boolean,
-    required?: boolean
+    required?: boolean,
+    embedded?: boolean,
+    setter?: (value: any) => any,
+    getter?: (value: any) => any,
+    transient?: boolean
 }
 export type AttrTypes = { [key: string]: AttrType };
 export type IObservable = {
@@ -225,12 +229,14 @@ export default class Model implements IObservable {
                     this._subs[curr[attrName].cid.toString()].unsubscribe();
                     this._subs[curr[attrName].cid.toString()] = null;
                 }
+
                 if (nxt[attrName]
                     && (
                         !curr
                         || !curr[attrName]
                         || curr[attrName].cid.toString() !== nxt[attrName].cid.toString()
                     )) {
+
                     this._subs[nxt[attrName].cid.toString()] = nxt[attrName]._subject.subscribe(this._subject);
                 }
 
@@ -242,6 +248,7 @@ export default class Model implements IObservable {
         const res = new (this.getClass())();
         res.cid = this.cid;
         res._subject = this._subject;
+        res._subs = this._subs;
         return res as T;
     }
 
@@ -252,6 +259,12 @@ export default class Model implements IObservable {
         setHash = await this._resolve(setHash);
         const currentValues = await this.getAttributes();
         const changes = objectDif(currentValues, setHash);
+        for(const key of Object.keys(setHash)) {
+            const attrType = this.getAttrType(key);
+            if (attrType.setter){
+                setHash[key] = attrType.setter.call(this,setHash[key]);
+            }
+        }
         let res = this as any;
         if (changes) {
             this._processChanges(currentValues, changes);
@@ -274,12 +287,20 @@ export default class Model implements IObservable {
         return res;
     }
 
+    getAttrType(attrName:string):AttrType{
+        return this.getClass().getAttrTypes()[attrName];
+    }
     /**
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
     get<T extends Model>(key: string): FieldValue {
-        return this.getClass()._ormDriver.get(this, key) || null;
+        let res = this.getClass()._ormDriver.get(this, key) || null;
+        const attrType = this.getAttrType(key);
+        if (attrType.getter){
+            res = attrType.getter.call(this,res);
+        }
+        return res;
     }
 
     getAttributes<T extends Model>(): FieldObject {
