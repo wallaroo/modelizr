@@ -1,15 +1,17 @@
 {
   "name": "mdlzr",
   "version": "0.1.0",
-  "private": true,
   "main": "index.js",
   "module": "index.js",
   "author": "wallaroo",
   "license": "MIT",
   "devDependencies": {
-    "mdlzr-src": "0.1.0"
+    "mdlzr-src": "^0.1.0"
   },
   "dependencies": {
+    "@types/firebase": "^3.2.1",
+    "@types/lodash.pick": "^4.4.3",
+    "@types/node": "^9.3.0",
     "lodash.isplainobject": "^4.0.6",
     "lodash.merge": "^4.6.0",
     "lodash.union": "^4.6.0",

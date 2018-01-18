@@ -18,7 +18,7 @@ export interface OrmDriver {
     /**
      * Gets the current value for the given property
      */
-    get<T extends Model>(model: T, key: string): FieldValue;
+    get<Attributes,T extends Model<Attributes>,KEY extends keyof Attributes>(model: T, key: KEY): Attributes[KEY];
 
     /**
      * Gets the current value for the given property

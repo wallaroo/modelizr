@@ -10,7 +10,7 @@ const merge = require("lodash.merge");
 const isPlainObject = require("lodash.isplainobject");
 
 export type ModelClass = typeof Model;
-export type FieldValue = number | string | boolean | null | Model | number[] | string[] | boolean[] | Model[];
+export type FieldValue = any;
 export type FieldObject = { [key: string]: FieldValue | FieldObject };
 export type AttrType = {
     type?: "number" | "string" | "boolean" | "date" | "object" | ModelClass | [ModelClass],
@@ -41,7 +41,7 @@ export class Cid {
     }
 }
 
-export default class Model implements IObservable {
+export default class Model<Attributes = { [key: string]: FieldValue }> implements IObservable {
     static _ormDriver: OrmDriver;
     static _attrTypes: AttrTypes = {};
     static _idAttribute: string;
@@ -294,7 +294,7 @@ export default class Model implements IObservable {
      * Gets the current value for the given property
      * if key is null gets all properties hash
      */
-    get<T extends Model>(key: string): FieldValue {
+    get<KEY extends keyof Attributes>(key: KEY): Attributes[KEY] {
         let res = this.getClass()._ormDriver.get(this, key) || null;
         const attrType = this.getAttrType(key);
         if (attrType.getter){
@@ -303,7 +303,7 @@ export default class Model implements IObservable {
         return res;
     }
 
-    getAttributes<T extends Model>(): FieldObject {
+    getAttributes(): FieldObject {
         return this.getClass()._ormDriver.getAttributes(this);
     }
 

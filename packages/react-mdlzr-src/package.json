@@ -4,10 +4,6 @@
   "description": "HOC to use with mdlzr",
   "main": "src/index.js",
   "private": true,
-  "files": [
-    "es/",
-    "src/"
-  ],
   "scripts": {
     "prepare": "tsc"
   },
@@ -22,11 +18,14 @@
     "typescript": "^2.6.2"
   },
   "peerDependencies": {
+    "mdlzr": "^0.1.0",
     "react": "16.x.x|15.x.x",
-    "react-dom": "16.x.x|15.x.x",
-    "mdlzr": "^0.1.0"
+    "react-dom": "16.x.x|15.x.x"
   },
   "dependencies": {
+    "@types/firebase": "^3.2.1",
+    "@types/lodash.pick": "^4.4.3",
+    "@types/node": "^9.3.0",
     "lodash.pick": "^4.4.0"
   }
 }
