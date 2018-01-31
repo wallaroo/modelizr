@@ -8,7 +8,7 @@
 		"build": "lerna run prepare --stream",
 		"test": "lerna run test --stream",
 		"lerna": "lerna",
-		"publish" : "lerna publish --conventional-commits"
+		"publish" : "lerna bootstrap && lerna publish --conventional-commits"
 	},
 	"repository": {
 		"type": "git",

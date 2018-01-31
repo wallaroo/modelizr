@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "test": "jest",
-    "prepare": "tsc"
+    "prepare": "tsc --pretty"
   },
   "devDependencies": {
     "@types/jest": "^21.1.8",
