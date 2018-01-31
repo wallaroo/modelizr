@@ -3,8 +3,11 @@
   "compilerOptions": {
     "target": "es2017",
     "module": "commonjs",
-    "lib": ["dom", "es2017"],
+    "rootDir": "./",
+    "lib": ["dom", "es2017","es2015"],
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "moduleResolution": "node"
   }
+
 }

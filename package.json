@@ -1,13 +1,14 @@
 {
 	"devDependencies": {
-		"lerna": "^2.5.1"
+		"lerna": "^2.8.0"
 	},
 	"scripts": {
-		"bootstrap": "lerna bootstrap",
+		"bootstrap": "lerna clean --yes && lerna bootstrap",
 		"link": "lerna run link",
 		"build": "lerna run prepare --stream",
 		"test": "lerna run test --stream",
-		"lerna": "lerna"
+		"lerna": "lerna",
+		"publish" : "lerna publish"
 	},
 	"repository": {
 		"type": "git",

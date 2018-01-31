@@ -1,7 +1,6 @@
 import * as React from "react";
 import {ComponentType,Component} from "react";
 import {IObservable, ISubscription} from "mdlzr";
-
 const pick = require("lodash.pick");
 export type PropsBinding = { [k:string]: IObservable }
 export type PropsBinder = (props:{ [k:string]: any }) => PropsBinding

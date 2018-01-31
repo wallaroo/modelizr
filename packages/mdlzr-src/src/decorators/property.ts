@@ -1,12 +1,7 @@
 import {AttrType} from "../Model";
 import "reflect-metadata";
 
-export default (descriptor: AttrType = {
-    default: null,
-    type: null,
-    readOnly: false,
-    required: false
-}) => function property(target: any, key: string): void {
+export default (descriptor: AttrType = {}) => function property(target: any, key: string): void {
     let def = target[key];
     const type = Reflect.getMetadata("design:type", target, key);
     if (type != Object) {

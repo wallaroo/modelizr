@@ -1,6 +1,6 @@
 const union = require("lodash.union");
 import {ISubscription} from "rxjs/Subscription"
-import Model,{ModelClass} from "./Model"
+import Model, {IObservable, ModelClass} from "./Model"
 
 import Collection from "./Collection";
 export type Operator = "==" | ">=" | ">" | "<" | "<=";
@@ -12,7 +12,7 @@ type WhereClause = {
 
 const whereRegexp = /^(\w*)\s?(==|>|<|>=|<=)\s?((['"]\w*['"])|(\d*))$/;
 
-export default class Query<T extends Model> {
+export default class Query<T extends Model> implements IObservable{
     model: ModelClass;
     collection: Collection<T>;
     _orderBy: string[] | null;
@@ -52,6 +52,8 @@ export default class Query<T extends Model> {
     subscribe(handler: (array:T[]) => void): ISubscription {
         return this.model.observeQuery(this,handler);
     }
+
+    observe = this.subscribe;
 
     where(field:string, operator?:Operator, value?:string):Query<T>{
         let clause:WhereClause;

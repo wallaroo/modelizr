@@ -1,5 +1,4 @@
 import Model, {Cid, FieldObject, ModelClass} from "./Model"
-import {FieldValue} from "./Model";
 import Query from "./Query";
 import Collection from "./Collection";
 import {ISubscription} from "rxjs/Subscription"
@@ -56,7 +55,7 @@ export interface OrmDriver {
      */
     getChanges(model: Model): FieldObject | null;
 
-    executeQuery<T extends Model>(model: ModelClass, query:Query<T>):Promise<T[]>;
+    executeQuery<T extends Model>(model: ModelClass<T>, query:Query<T>):Promise<T[]>;
 
-    observeQuery<T extends Model>(model: ModelClass, query:Query<T>, handler: (array:T[]) => void): ISubscription;
+    observeQuery<T extends Model>(model: ModelClass<T>, query:Query<T>, handler: (array:T[]) => void): ISubscription;
 }
