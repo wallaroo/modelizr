@@ -21,7 +21,7 @@ export default class FirestoreOrm extends SimpleOrm {
     return {
       closed: false,
       unsubscribe: _query.onSnapshot((snapshot) => {
-        let res: Promise<T>[] = [];
+        let res: T[] = [];
         snapshot
           .forEach(
             (doc) => {
@@ -29,15 +29,13 @@ export default class FirestoreOrm extends SimpleOrm {
             }
           )
         ;
-        Promise.all(res).then((models: T[]) => {
-          handler(models);
-        });
+        handler(res);
       })
     }
   }
 
   private applyQuery<T extends Model>(collection: types.CollectionReference,
-                              query: Query<T>): types.Query {
+                                      query: Query<T>): types.Query {
     let result: types.Query = collection;
     if (query._orderBy) {
       for (const ordBy of query._orderBy) {
@@ -49,7 +47,7 @@ export default class FirestoreOrm extends SimpleOrm {
 
   async executeQuery<T extends Model>(model: ModelClass<T>,
                                       query: Query<T>): Promise<Array<T>> {
-    let res: Promise<T>[] = [];
+    let res: T[] = [];
     let collection = this._db.collection(query.collection.name);
     let _query = this.applyQuery(collection, query);
 
@@ -57,10 +55,13 @@ export default class FirestoreOrm extends SimpleOrm {
 
     snapshot.forEach(
       (doc) => {
-        res.push(model.create(doc.data()) as Promise<T>);
+        res.push(model.create({
+          [model.idAttribute]:doc.id,
+          ...doc.data()})
+        );
       }
     );
-    return Promise.all(res);
+    return res;
   }
 
   /**
@@ -70,8 +71,7 @@ export default class FirestoreOrm extends SimpleOrm {
                                 collection: Collection<T> = model.getClass().getCollection()): Promise<void> {
     const id = model.getId();
     if (id) {
-      await
-        this._db.collection(collection.name).doc("" + id).delete()
+      await this._db.collection(collection.name).doc("" + id).delete()
     }
     return super.delete(model);
   }
@@ -117,7 +117,7 @@ export default class FirestoreOrm extends SimpleOrm {
       await transaction.set(this._db.collection(collection.name).doc("" + id), isModelCollection ? attributes : model.getRef());
     } else {
       const doc = this._db.collection(model.getClass().getCollection().name).doc();
-      await model.getClass().getCollection().setKey(model, doc.id);
+      model = model.getClass().getCollection().setKey(model, doc.id);
       attributes = this.getAttributesForDB(model);
       await transaction.set(doc, isModelCollection ? attributes : model.getRef());
     }
@@ -142,7 +142,7 @@ export default class FirestoreOrm extends SimpleOrm {
   }
 
 
-  async getModelById<T extends Model>(model: ModelClass,
+  async getModelById<T extends Model>(model: ModelClass<T>,
                                       id: string | number,
                                       collection: Collection<T> = model.getCollection()): Promise<T> {
     const doc = await this._db
@@ -153,9 +153,9 @@ export default class FirestoreOrm extends SimpleOrm {
     let res;
 
     if (doc.exists) {
-      let data:any = doc.data();
+      let data: any = doc.data();
       // get the model from simple orm using the model id and not the collection key
-      const modelId = data[model._idAttribute];
+      const modelId = data[model.idAttribute];
 
       if (modelId) {
         if (collection !== model.getCollection()) {
@@ -167,8 +167,7 @@ export default class FirestoreOrm extends SimpleOrm {
             data = modelDoc.data();
           }
         }
-        res = await
-          super.getModelById(model, modelId);
+        res = await super.getModelById(model, modelId);
       }
 
       if (!res) {
@@ -177,7 +176,7 @@ export default class FirestoreOrm extends SimpleOrm {
       }
       res = await res.fetch(data);
     } else {
-      res = await super.getModelById<T>(model, id);
+      res = null;
     }
     return res as T;
   }

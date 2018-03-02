@@ -1,6 +1,7 @@
 {
   "devDependencies": {
     "lerna": "^2.8.0",
+    "mergedeps": "^1.0.1",
     "npm-run-all": "^4.1.2"
   },
   "scripts": {
@@ -10,7 +11,8 @@
     "test": "lerna run test --stream",
     "lerna": "lerna",
     "lerna:publish": "lerna publish --conventional-commits",
-    "publish": "npm-run-all -s bootstrap lerna:publish"
+    "publish": "npm-run-all -s bootstrap lerna:publish",
+    "prebootstrap": "mergedeps ./packages/react-mdlzr-src ./packages/react-mdlzr-dist"
   },
   "repository": {
     "type": "git",

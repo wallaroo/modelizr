@@ -1,19 +1,20 @@
 import {OrmDriver} from "./OrmDriver";
-import {objectDif} from "./utils"
+import {isEmpty, objectDif} from "./utils"
 import {Subject} from "rxjs/Subject";
 import Query from "./Query";
 import Collection from "./Collection";
 import {ISubscription} from "rxjs/Subscription";
-import {Operator} from "./Query";
 
 const merge = require("lodash.merge");
 const isPlainObject = require("lodash.isplainobject");
 
-export type ModelClass<T = Model> = { new (): T } & typeof Model;
+export type ModelClass<T extends Model = Model> = { new (): T } & typeof Model;
 export type FieldValue = any;
-export interface FieldObject extends Object{
+
+export interface FieldObject extends Object {
   [key: string]: FieldValue | FieldObject
 }
+
 export type AttrType = {
   type?: "number" | "string" | "boolean" | "date" | "object" | ModelClass | [ModelClass],
   default?: FieldValue,
@@ -43,13 +44,16 @@ export class Cid {
   }
 }
 
-export default class Model<Attributes = any> implements IObservable {
-  static _ormDriver: OrmDriver;
-  static _attrTypes: AttrTypes = {};
-  static _idAttribute: string;
-  static _collection: Collection<any>;
-  static discriminator: string;
-  cid: Cid;
+export default class Model implements IObservable {
+  // protected static _ormDriver: OrmDriver;
+  protected static _attrTypes: AttrTypes = {};
+  static idAttribute: any;
+  protected static _collection: Collection<Model>;
+  protected static discriminator: string;
+  public cid: Cid = new Cid();
+  protected attributes: any = {};
+  protected changes: any = {};
+
   _subject = new Subject();
   _subs: { [k: string]: ISubscription } = {};
 
@@ -63,43 +67,43 @@ export default class Model<Attributes = any> implements IObservable {
     }
   }
 
-  static getCollection<T extends Model>(): Collection<T> {
+  static getCollection<T extends Model>(this:ModelClass<T>): Collection<T> {
     if (!this._collection) {
       this._collection = new Collection(this);
     }
-    return this._collection;
+    return this._collection as Collection<T>;
   }
 
   static getSuperClass() {
     return Object.getPrototypeOf(this);
   }
 
-  static async getById(id: string | number): Promise<Model | null> {
-    return this._ormDriver.getModelById(this, id);
+  static async getById(ormDriver: OrmDriver, id: string | number): Promise<Model | null> {
+    return ormDriver.getModelById(this, id);
   }
-  static async create<T extends Model>(this: ModelClass<T>): Promise<T>;
-  static async create<T extends Model>(this: ModelClass<T> , attributes: Array<FieldObject>): Promise<T[]>;
-  static async create<T extends Model>(this: ModelClass<T> , attributes: FieldObject): Promise<T>;
-  static async create<T extends Model>(this: ModelClass<T> , attributes?: FieldObject | Array<FieldObject>): Promise<T | T[]> {
+
+  static create<T extends Model>(this: ModelClass<T>): T;
+  static create<T extends Model>(this: ModelClass<T>, attributes: Array<FieldObject>): T[];
+  static create<T extends Model>(this: ModelClass<T>, attributes: FieldObject): T;
+  static create<T extends Model>(this: ModelClass<T>, attributes?: FieldObject | Array<FieldObject>): T | T[] {
     if (Array.isArray(attributes)) {
       let res: T[] = [];
       for (const cursor of attributes) {
-        res.push(await this.create(cursor) as T);
+        res.push(this.create(cursor) as T);
       }
       return res;
     } else {
       let res: T | null = null;
-      const id = attributes && attributes[this._idAttribute];
-      if (id) {
-        res = await this._ormDriver.getModelById<T>(this, (id as string | number));
-      }
+      const id = attributes && attributes[this.idAttribute];
+      // if (id) {
+      //   res = await this._ormDriver.getModelById<T>(this, (id as string | number));
+      // }
       if (!res) {
         if (this.discriminator) {
           throw "implement me";
         }
         else {
           res = new this() as T;
-          res.cid = new Cid();
         }
       }
 
@@ -110,15 +114,15 @@ export default class Model<Attributes = any> implements IObservable {
           defaults[prop] = attrType.default;
       }
       if (id) {
-        await res.fetch(Object.assign(defaults, attributes));
+        res = res.fetch(Object.assign(defaults, attributes));
       } else {
-        await res.set(Object.assign(defaults, attributes));
+        res = res.set(Object.assign(defaults, attributes));
       }
       return res;
     }
   }
 
-  static async _resolve(setHash: FieldObject, owner: Model): Promise<FieldObject> {
+  static _resolve(setHash: FieldObject, owner: Model): FieldObject {
     const attrTypes = this.getAttrTypes();
     const res: FieldObject = {};
     for (const attrName of Object.keys(attrTypes)) {
@@ -135,7 +139,7 @@ export default class Model<Attributes = any> implements IObservable {
             if ((attrType.type as ModelClass).discriminator) {
               throw "implement me"
             } else {
-              res[attrName] = await (attrType.type as ModelClass).create(value as FieldObject);
+              res[attrName] = (attrType.type as ModelClass).create(value as FieldObject);
             }
           } else {
             throw `invalid type of ${value}; expecting ${attrType.type}`
@@ -148,40 +152,23 @@ export default class Model<Attributes = any> implements IObservable {
     return res;
   }
 
-  static getOrmDriver(): OrmDriver {
-    return this._ormDriver;
+  // static getOrmDriver(): OrmDriver {
+  //   return this._ormDriver;
+  // }
+
+  static observeQuery<T extends Model>(ormDriver: OrmDriver, query: Query<T>, handler: (array: T[]) => void): ISubscription {
+    return ormDriver.observeQuery(this as ModelClass<T>, query, handler);
   }
 
-  static observeQuery<T extends Model>(query: Query<T>, handler: (array: T[]) => void): ISubscription {
-    return this._ormDriver.observeQuery(this as ModelClass<T>, query, handler);
+  static async executeQuery<T extends Model>(ormDriver: OrmDriver, query: Query<T>): Promise<T[]> {
+    return ormDriver.executeQuery(this as ModelClass<T>, query);
   }
 
-  static async executeQuery<T extends Model>(query: Query<T>): Promise<T[]> {
-    return this._ormDriver.executeQuery(this as ModelClass<T>, query);
+  static find<T extends Model>(ormDriver:OrmDriver): Query<T> {
+    return new Query(ormDriver,this);
   }
 
-  static find<T extends Model>(): Query<T> {
-    return new Query(this);
-  }
-
-  static where<T extends Model>(field: string, operator?: Operator, value?: string): Query<T> {
-    return (new Query<T>(this)).where(field, operator, value);
-  }
-
-  static orderBy<T extends Model>(...fields: string[]): Query<T> {
-    return (new Query<T>(this)).orderBy(...fields);
-  }
-
-  static limit<T extends Model>(number: number): Query<T> {
-    return (new Query<T>(this)).limit(number);
-  }
-
-  static startAt<T extends Model>(number: number): Query<T> {
-    return (new Query<T>(this)).startAt(number);
-  }
-
-
-  async _resolve(setHash: FieldObject): Promise<FieldObject> {
+  resolve(setHash: FieldObject): FieldObject {
     return this.getClass()._resolve(setHash, this);
   }
 
@@ -196,21 +183,20 @@ export default class Model<Attributes = any> implements IObservable {
   //     return this._subject;
   // };
 
-  getClass(): ModelClass {
-    return this.constructor as ModelClass;
+  getClass(): ModelClass<this> {
+    return this.constructor as ModelClass<this>;
   }
 
   getId(): string | number | null {
-    return this.getClass()._ormDriver.getId(this);
+    return this.get(this.getClass().idAttribute);
   }
 
   getRef(): { [k: string]: string | number | null } {
-    return {[this.getClass()._idAttribute]: this.getId()}
+    return {[this.getClass().idAttribute]: this.getId()}
   }
 
-  setId(id: string | number): Model {
-    this.getClass()._ormDriver.set(this, {[this.getClass()._idAttribute]: id});
-    return this;
+  setId(id: string | number): this {
+    return this.set({[this.getClass().idAttribute]: id});
   }
 
   private _processChanges(current: FieldObject, next: FieldObject): void {
@@ -241,25 +227,26 @@ export default class Model<Attributes = any> implements IObservable {
 
           this._subs[nxt[attrName].cid.toString()] = nxt[attrName]._subject.subscribe(this._subject);
         }
-
       }
     }
   }
 
-  clone<T extends Model>(): T {
+  clone(): this {
     const res = new (this.getClass())();
     res.cid = this.cid;
     res._subject = this._subject;
     res._subs = this._subs;
-    return res as T;
+    res.attributes = Object.assign({},this.attributes);
+    res.changes = Object.assign({},this.changes);
+    return res;
   }
 
   /**
    * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
    */
-  async set<T extends Model>(setHash: FieldObject): Promise<T> {
-    setHash = await this._resolve(setHash);
-    const currentValues = await this.getAttributes();
+  set<T extends Model>(setHash: FieldObject): this {
+    setHash = this.resolve(setHash);
+    const currentValues = this.getAttributes();
     const changes = objectDif(currentValues, setHash);
     for (const key of Object.keys(setHash)) {
       const attrType = this.getAttrType(key);
@@ -269,22 +256,28 @@ export default class Model<Attributes = any> implements IObservable {
     }
     let res = this as any;
     if (changes) {
+      res = this.clone();
       this._processChanges(currentValues, changes);
-      res = await this.getClass()._ormDriver.set(res, setHash);
+      Object.assign(res.changes, changes);
       this._subject.next(res);
     }
     return res;
   }
 
-  async fetch<T extends Model>(setHash: FieldObject): Promise<T> {
-    setHash = await this._resolve(setHash);
-    const currentValues = await this.getAttributes();
-    const changes = objectDif(currentValues, setHash);
+  fetch<T extends Model>(setHash: FieldObject): this {
+    setHash = this.resolve(setHash);
+    const changes = objectDif(this.getAttributes(), setHash);
     let res = this as any;
     if (changes) {
-      this._processChanges(currentValues, changes);
-      res = await this.getClass()._ormDriver.fetch(res, setHash);
+
+      this._processChanges(this.getAttributes(), changes);
+      res = this.clone();
+      Object.assign(res.attributes, changes);
+      res.changes = objectDif(res.attributes, res.changes) || {};
       this._subject.next(res);
+    }else{
+      Object.assign(res.attributes, res.changes);
+      res.changes = {};
     }
     return res;
   }
@@ -297,30 +290,32 @@ export default class Model<Attributes = any> implements IObservable {
    * Gets the current value for the given property
    * if key is null gets all properties hash
    */
-  get<KEY extends keyof Attributes>(key: KEY): Attributes[KEY] {
-    let res = this.getClass()._ormDriver.get<Attributes, this, KEY>(this, key) || null;
+  get(key: string): any {
+    let res = this.getAttributes()[key];
     const attrType = this.getAttrType(key);
     if (attrType.getter) {
       res = attrType.getter.call(this, res);
     }
-    return res;
+    return res === undefined ? null : res;
   }
 
-  getAttributes(): FieldObject {
-    return this.getClass()._ormDriver.getAttributes(this);
+  getAttributes(): any {
+    return Object.assign({}, this.attributes, this.changes);
   }
 
   getChanges(): FieldObject | null {
-    return this.getClass()._ormDriver.getChanges(this);
+    if (isEmpty(this.changes)){
+      return null;
+    }else {
+      return Object.assign({}, this.changes);
+    }
   }
 
-  hasChanges = this.getChanges;
-
-  async save(): Promise<Model> {
-    return this.getClass()._ormDriver.save(this);
+  async save<T extends Model>(this:T, ormDriver: OrmDriver): Promise<T> {
+    return ormDriver.save(this);
   }
 
-  async delete(): Promise<void> {
-    return this.getClass()._ormDriver.delete(this);
+  async delete(ormDriver: OrmDriver): Promise<void> {
+    return ormDriver.delete(this);
   }
 }

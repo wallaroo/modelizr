@@ -5,27 +5,6 @@ import {ISubscription} from "rxjs/Subscription"
 
 export interface OrmDriver {
     /**
-     * Sets properties and if something changes isChanged will return true and getChanges will return changed fields
-     */
-    set<T extends Model>(model: T, setHash: FieldObject): T;
-
-    /**
-     * Sets properties bypassing changes eventually pre-existing changes will be dropped
-     */
-    fetch<T extends Model>(model: T, setHash: FieldObject): T;
-
-    /**
-     * Gets the current value for the given property
-     */
-    get<Attributes,T extends Model<Attributes>,KEY extends keyof Attributes>(model: T, key: KEY): Attributes[KEY];
-
-    /**
-     * Gets the current value for the given property
-     */
-    getAttributes<T extends Model>(model: T, key?: string): FieldObject;
-
-    getId(model: Model): number | string | null;
-    /**
      * Upserts the model in the ORM
      */
     save<T extends Model>(model: T, collection?:Collection<T>): Promise<T>;
@@ -38,22 +17,12 @@ export interface OrmDriver {
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
      */
-    getCidById(model: ModelClass, id: string | number): Cid | null;
-
-    /**
-     * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
-     */
-    getModelById<T extends Model>(model: ModelClass, id: string | number,collection?:Collection<T>): Promise<T | null>;
+    getModelById<T extends Model>(model: ModelClass<T>, id: string | number,collection?:Collection<T>): Promise<T | null>;
 
     /**
      * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
      */
     getModelByCid(cid: Cid): Model | null;
-
-    /**
-     * gets the changes from the last fetch
-     */
-    getChanges(model: Model): FieldObject | null;
 
     executeQuery<T extends Model>(model: ModelClass<T>, query:Query<T>):Promise<T[]>;
 
