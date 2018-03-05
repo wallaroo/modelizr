@@ -1,6 +1,6 @@
 {
  "name": "react-mdlzr",
- "version": "0.1.5",
+ "version": "0.1.6",
  "description": "HOC to use with mdlzr",
  "main": "index.js",
  "module": "index.js",
@@ -19,9 +19,9 @@
  },
  "homepage": "https://github.com/wallaroo/mdlzr#readme",
  "devDependencies": {
-  "react-mdlzr-src": "^0.1.5",
   "react": "^16.2.0",
-  "react-dom": "^16.2.0"
+  "react-dom": "^16.2.0",
+  "react-mdlzr-src": "^0.1.6"
  },
  "peerDependencies": {
   "mdlzr": "^0.1.0",
