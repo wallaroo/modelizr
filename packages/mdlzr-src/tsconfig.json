@@ -6,7 +6,7 @@
     "target": "es6",
     "declaration": true,
     "outDir": "../mdlzr-dist/",
-    "lib": ["dom", "es2017","es2015"],
+    "lib": ["dom", "es6"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "moduleResolution": "node",

@@ -164,7 +164,7 @@ export default class Model implements IObservable {
     return ormDriver.executeQuery(this as ModelClass<T>, query);
   }
 
-  static find<T extends Model>(ormDriver:OrmDriver): Query<T> {
+  static find<T extends Model>(this:ModelClass<T>,ormDriver:OrmDriver): Query<T> {
     return new Query(ormDriver,this);
   }
 

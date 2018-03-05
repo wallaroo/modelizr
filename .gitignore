@@ -4,3 +4,4 @@ es
 /coverage/
 /packages/*-dist/**/*.js
 /packages/*-dist/**/*.ts
+/packages/**/package-lock.json

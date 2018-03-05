@@ -16,7 +16,7 @@ type WhereClause = {
 const whereRegexp = /^(\w*)\s?(==|>|<|>=|<=)\s?((['"]\w*['"])|(\d*))$/;
 
 export default class Query<T extends Model> implements IObservable {
-  model: ModelClass;
+  model: ModelClass<T>;
   collection: Collection<T>;
   ormDriver: OrmDriver;
   _orderBy: string[] | null = null;
@@ -24,10 +24,10 @@ export default class Query<T extends Model> implements IObservable {
   _limit: number | null = null;
   private _whereClauses: WhereClause[] | null = null;
 
-  constructor(ormDriver: OrmDriver, model: ModelClass | Collection<T>) {
+  constructor(ormDriver: OrmDriver, model: ModelClass<T> | Collection<T>) {
     this.ormDriver = ormDriver;
     if (Model.isPrototypeOf(model)) {
-      this.model = model as ModelClass;
+      this.model = model as ModelClass<T>;
       this.collection = this.model.getCollection();
     } else if (model instanceof Collection) {
       this.model = model.model;

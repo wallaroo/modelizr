@@ -5,8 +5,9 @@
     "npm-run-all": "^4.1.2"
   },
   "scripts": {
-    "bootstrap": "lerna clean --yes && lerna bootstrap",
+    "bootstrap": "lerna clean --yes && lerna bootstrap -- --no-package-lock",
     "link": "lerna run link",
+    "linkDeps": "lerna run linkDeps",
     "build": "lerna run prepare --stream",
     "test": "lerna run test --stream",
     "lerna": "lerna",
