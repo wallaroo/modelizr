@@ -1,12 +1,12 @@
 {
   "name": "mdlzr",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "main": "index.js",
   "module": "index.js",
   "author": "wallaroo",
   "license": "MIT",
   "devDependencies": {
-    "mdlzr-src": "^0.1.6"
+    "mdlzr-src": "^0.1.7"
   },
   "dependencies": {
     "@types/firebase": "^3.2.1",

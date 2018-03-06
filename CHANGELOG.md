@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+<a name="0.1.7"></a>
+## <small>0.1.7 (2018-03-06)</small>
+
+* fix(typescript): setters called before changes filter ([88cf6ee](https://github.com/wallaroo/mdlzr/commit/88cf6ee))
+
+
+
+
 <a name="0.1.6"></a>
 ## <small>0.1.6 (2018-03-05)</small>
 
