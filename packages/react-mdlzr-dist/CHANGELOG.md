@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+<a name="0.1.8"></a>
+## <small>0.1.8 (2018-03-06)</small>
+
+
+
+
+
+**Note:** Version bump only for package react-mdlzr
+
 <a name="0.1.7"></a>
 ## <small>0.1.7 (2018-03-06)</small>
 

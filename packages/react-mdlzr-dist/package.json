@@ -1,6 +1,6 @@
 {
  "name": "react-mdlzr",
- "version": "0.1.7",
+ "version": "0.1.8",
  "description": "HOC to use with mdlzr",
  "main": "index.js",
  "module": "index.js",
