@@ -236,8 +236,10 @@ export default class Model implements IObservable {
     res.cid = this.cid;
     res._subject = this._subject;
     res._subs = this._subs;
-    res.attributes = Object.assign({},this.attributes);
-    res.changes = Object.assign({},this.changes);
+    //res.attributes = Object.assign({}, this.attributes);
+    //res.changes = Object.assign({}, this.changes);
+    res.attributes = this.attributes;
+    res.changes = this.changes;
     return res;
   }
 
@@ -247,13 +249,13 @@ export default class Model implements IObservable {
   set<T extends Model>(setHash: FieldObject): this {
     setHash = this.resolve(setHash);
     const currentValues = this.getAttributes();
-    const changes = objectDif(currentValues, setHash);
     for (const key of Object.keys(setHash)) {
       const attrType = this.getAttrType(key);
       if (attrType.setter) {
         setHash[key] = attrType.setter.call(this, setHash[key]);
       }
     }
+    const changes = objectDif(currentValues, setHash);
     let res = this as any;
     if (changes) {
       res = this.clone();
@@ -269,7 +271,6 @@ export default class Model implements IObservable {
     const changes = objectDif(this.getAttributes(), setHash);
     let res = this as any;
     if (changes) {
-
       this._processChanges(this.getAttributes(), changes);
       res = this.clone();
       Object.assign(res.attributes, changes);

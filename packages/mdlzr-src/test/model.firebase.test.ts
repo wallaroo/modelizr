@@ -165,8 +165,10 @@ test("collection", async () => {
   // expect(saved).not.toBe(parent);
   //expect(saved).toBe(res);
   //expect(res21).toBe(saved21);
+  console.log("AAAAAAAAAAA")
   expect(saved21).not.toBe(parent2);
   expect(saved11).toBe(saved12);
+  console.log("BBBBBBBBBB")
   expect(saved12).not.toBe(parent2);
   expect(res).toBe(saved12);
 });

@@ -11,7 +11,7 @@
     "build": "lerna run prepare --stream",
     "test": "lerna run test --stream",
     "lerna": "lerna",
-    "lerna:publish": "lerna publish --conventional-commits",
+    "lerna:publish": "lerna publish --conventional-commits --npm-tag=latest",
     "publish": "npm-run-all -s bootstrap lerna:publish",
     "prebootstrap": "mergedeps ./packages/react-mdlzr-src ./packages/react-mdlzr-dist"
   },

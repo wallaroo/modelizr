@@ -108,7 +108,7 @@ export default class FirestoreOrm extends SimpleOrm {
 
   async transactionSave<T extends Model>(model: T,
                                          collection: Collection<T> = model.getClass().getCollection(),
-                                         transaction: any) {
+                                         transaction: any):Promise<T> {
     const id = collection.getKey(model);
     const isModelCollection = (collection === model.getClass().getCollection());
     let attributes = this.getAttributesForDB(model);
@@ -121,6 +121,7 @@ export default class FirestoreOrm extends SimpleOrm {
       attributes = this.getAttributesForDB(model);
       await transaction.set(doc, isModelCollection ? attributes : model.getRef());
     }
+    return model;
   }
 
   /**
@@ -135,7 +136,7 @@ export default class FirestoreOrm extends SimpleOrm {
       for (const childModel of childModels) {
         await this.transactionSave(childModel, childModel.getClass().getCollection(), transaction)
       }
-      await this.transactionSave(model, collection, transaction)
+      model = await this.transactionSave(model, collection, transaction)
     });
 
     return super.save(model);

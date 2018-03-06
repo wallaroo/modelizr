@@ -68,14 +68,13 @@ export default class SimpleOrm implements OrmDriver {
    * Upserts the model in the ORM
    */
   async save<T extends Model>(model: T, collection: Collection<T> = model.getClass().getCollection()): Promise<T> {
-    this._store.byCid[model.cid.toString()] = model;
     let modelId = collection.getKey(model);
     if (!modelId) {
       modelId = this._lastId++;
-      model = collection.setKey(model,""+modelId);
+      model = collection.setKey(model, "" + modelId);
     }
     model = model.fetch(model.getAttributes());
-    if(!this._store.byId[collection.name])
+    if (!this._store.byId[collection.name])
       this._store.byId[collection.name] = {};
     this._store.byId[collection.name][modelId] = model.cid;
     this._store.byCid[model.cid.toString()] = model;
