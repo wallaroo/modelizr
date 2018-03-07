@@ -1,6 +1,6 @@
 {
   "name": "mdlzr-src",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "private": true,
   "main": "src/index.js",
   "author": "wallaroo",
@@ -23,7 +23,6 @@
     "typescript": "^2.7.1"
   },
   "dependencies": {
-    "core-js": "^2.5.3",
     "@firebase/firestore-types": "^0.2.1",
     "@types/jest": "^22.2.0",
     "@types/lodash.isempty": "^4.4.3",
@@ -33,6 +32,7 @@
     "@types/lodash.union": "^4.6.3",
     "@types/node": "^9.4.6",
     "@types/pluralize": "0.0.28",
+    "core-js": "^2.5.3",
     "lodash.isempty": "^4.4.0",
     "lodash.isplainobject": "^4.0.6",
     "lodash.merge": "^4.6.0",

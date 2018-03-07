@@ -1,6 +1,6 @@
 {
  "name": "react-mdlzr",
- "version": "0.1.9",
+ "version": "0.1.10",
  "description": "HOC to use with mdlzr",
  "main": "index.js",
  "module": "index.js",
@@ -21,7 +21,7 @@
  "devDependencies": {
   "react": "^16.2.0",
   "react-dom": "^16.2.0",
-  "react-mdlzr-src": "^0.1.9"
+  "react-mdlzr-src": "^0.1.10"
  },
  "peerDependencies": {
   "mdlzr": "^0.1.0",
