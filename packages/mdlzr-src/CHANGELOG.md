@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+<a name="0.1.9"></a>
+## <small>0.1.9 (2018-03-07)</small>
+
+* chore(typescript): mdlzr target to es5 + minors ([3904e77](https://github.com/wallaroo/modelizr/commit/3904e77))
+
+
+
+
 <a name="0.1.7"></a>
 ## <small>0.1.7 (2018-03-06)</small>
 
