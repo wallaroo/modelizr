@@ -7,7 +7,9 @@ import {ISubscription} from "rxjs/Subscription";
 
 const merge = require("lodash.merge");
 const isPlainObject = require("lodash.isplainobject");
-
+/**
+ * @deprecated
+ */
 export type ModelClass<T extends Model = Model> = { new (): T } & typeof Model;
 export type FieldValue = any;
 
@@ -44,6 +46,9 @@ export class Cid {
   }
 }
 
+/**
+ * @deprecated
+ */
 export default class Model implements IObservable {
   // protected static _ormDriver: OrmDriver;
   protected static _attrTypes: AttrTypes = {};

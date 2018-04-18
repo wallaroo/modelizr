@@ -20,7 +20,7 @@
     "babel-preset-flow": "^6.23.0",
     "firebase": "^4.8.1",
     "jest": "^22.4.2",
-    "typescript": "^2.7.1"
+    "typescript": "^2.8.1"
   },
   "dependencies": {
     "@firebase/firestore-types": "^0.2.1",

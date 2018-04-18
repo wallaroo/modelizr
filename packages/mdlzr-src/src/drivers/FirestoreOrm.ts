@@ -4,6 +4,16 @@ import Query from "../Query";
 import Collection from "../Collection";
 import {ISubscription} from "rxjs/Subscription"
 import * as types from "@firebase/firestore-types";
+import {
+  Entity,
+  EntityClass,
+  fetch,
+  getAttributes,
+  getAttrTypes,
+  getCollection,
+  getId,
+  getIdAttribute, getRef, isEntity, isEntityClass
+} from '../utils';
 
 export default class FirestoreOrm extends SimpleOrm {
   private _db: types.FirebaseFirestore;
@@ -13,7 +23,7 @@ export default class FirestoreOrm extends SimpleOrm {
     this._db = db;
   }
 
-  observeQuery<T extends Model>(model: ModelClass<T>,
+  observeQuery<T extends object>(model: EntityClass<T>,
                                 query: Query<T>,
                                 handler: (h: T[]) => void): ISubscription {
     let collection = this._db.collection(query.collection.name);
@@ -25,7 +35,7 @@ export default class FirestoreOrm extends SimpleOrm {
         snapshot
           .forEach(
             (doc) => {
-              res.push(model.create(doc.data()));
+              res.push(fetch(new model(),doc.data()));
             }
           )
         ;
@@ -34,7 +44,7 @@ export default class FirestoreOrm extends SimpleOrm {
     }
   }
 
-  private applyQuery<T extends Model>(collection: types.CollectionReference,
+  private applyQuery<T extends object>(collection: types.CollectionReference,
                                       query: Query<T>): types.Query {
     let result: types.Query = collection;
     if (query._orderBy) {
@@ -45,7 +55,7 @@ export default class FirestoreOrm extends SimpleOrm {
     return result;
   }
 
-  async executeQuery<T extends Model>(model: ModelClass<T>,
+  async executeQuery<T extends object>(model: EntityClass<T>,
                                       query: Query<T>): Promise<Array<T>> {
     let res: T[] = [];
     let collection = this._db.collection(query.collection.name);
@@ -55,8 +65,8 @@ export default class FirestoreOrm extends SimpleOrm {
 
     snapshot.forEach(
       (doc) => {
-        res.push(model.create({
-          [model.idAttribute]:doc.id,
+        res.push(fetch(new model(),{
+          [getIdAttribute(model)]:doc.id,
           ...doc.data()})
         );
       }
@@ -67,59 +77,59 @@ export default class FirestoreOrm extends SimpleOrm {
   /**
    * Removes the model in the ORM
    */
-  async delete<T extends Model>(model: T,
-                                collection: Collection<T> = model.getClass().getCollection()): Promise<void> {
-    const id = model.getId();
+  async delete<T extends object>(model: Entity<T>,
+                                collection: Collection<T> = getCollection(model.constructor)): Promise<void> {
+    const id = getId(model);
     if (id) {
       await this._db.collection(collection.name).doc("" + id).delete()
     }
     return super.delete(model);
   }
 
-  getAttributesForDB<T extends Model>(model: T): {} {
-    const attrs = model.getAttributes();
-    const attrTypes = model.getClass().getAttrTypes();
-    for (let attrName of Object.keys(attrs)) {
+  getAttributesForDB<T extends object>(model: Entity<T>): {} {
+    const attrs = getAttributes(model);
+    const attrTypes = getAttrTypes(model.constructor);
+    for (let attrName of Object.keys(attrs) as Array<keyof T>) {
       const attrValue = attrs[attrName];
       const attrType = attrTypes[attrName];
       if (attrType.transient) {
         delete attrs[attrName];
-      } else if (Model.isPrototypeOf(attrType.type as object) && attrValue) {
+      } else if (isEntityClass<any>(attrType.type) && isEntity(attrValue)) {
         // TODO check embed
-        attrs[attrName] = (attrValue as Model).getRef();
+        attrs[attrName] = attrValue.getRef();
       }
     }
     return attrs;
   }
 
-  getChildModels<T extends Model>(model: T): Model[] {
-    const attrs = model.getAttributes();
-    const attrTypes = model.getClass().getAttrTypes();
-    const models: Model[] = [];
-    for (let attrName of Object.keys(attrs)) {
+  getChildModels<T extends object>(model: Entity<T>): Entity<T>[] {
+    const attrs = getAttributes(model);
+    const attrTypes = getAttrTypes(model.constructor);
+    const models: Entity<T>[] = [];
+    for (let attrName of Object.keys(attrs) as Array<keyof T>) {
       const attrValue = attrs[attrName];
       const attrType = attrTypes[attrName];
-      if (Model.isPrototypeOf(attrType.type as object) && attrValue) {
-        models.push(attrValue as Model)
+      if (isEntityClass<any>(attrType.type) && isEntity<T>(attrValue)) {
+        models.push(attrValue)
       }
     }
     return models;
   }
 
-  async transactionSave<T extends Model>(model: T,
-                                         collection: Collection<T> = model.getClass().getCollection(),
-                                         transaction: any):Promise<T> {
+  async transactionSave<T extends object>(model: Entity<T>,
+                                         collection: Collection<T> = getCollection(model.constructor),
+                                         transaction: any):Promise<Entity<T>> {
     const id = collection.getKey(model);
-    const isModelCollection = (collection === model.getClass().getCollection());
+    const isModelCollection = (collection === getCollection(model.constructor));
     let attributes = this.getAttributesForDB(model);
 
     if (id) {
-      await transaction.set(this._db.collection(collection.name).doc("" + id), isModelCollection ? attributes : model.getRef());
+      await transaction.set(this._db.collection(collection.name).doc("" + id), isModelCollection ? attributes : getRef(model));
     } else {
-      const doc = this._db.collection(model.getClass().getCollection().name).doc();
-      model = model.getClass().getCollection().setKey(model, doc.id);
+      const doc = this._db.collection(getCollection(model.constructor).name).doc();
+      model = getCollection(model.constructor).setKey(model, doc.id);
       attributes = this.getAttributesForDB(model);
-      await transaction.set(doc, isModelCollection ? attributes : model.getRef());
+      await transaction.set(doc, isModelCollection ? attributes : getRef(model));
     }
     return model;
   }
@@ -127,14 +137,14 @@ export default class FirestoreOrm extends SimpleOrm {
   /**
    * Upserts the model in the ORM
    */
-  async save<T extends Model>(model: T,
-                              collection: Collection<T> = model.getClass().getCollection()): Promise<T> {
+  async save<T extends object>(model: Entity<T>,
+                              collection: Collection<T> = getCollection(model.constructor)): Promise<Entity<T>> {
 
     const childModels = this.getChildModels(model);
 
     await this._db.runTransaction(async (transaction: any) => {
       for (const childModel of childModels) {
-        await this.transactionSave(childModel, childModel.getClass().getCollection(), transaction)
+        await this.transactionSave(childModel, getCollection(childModel.constructor), transaction)
       }
       model = await this.transactionSave(model, collection, transaction)
     });
@@ -143,9 +153,9 @@ export default class FirestoreOrm extends SimpleOrm {
   }
 
 
-  async getModelById<T extends Model>(model: ModelClass<T>,
+  async getModelById<T extends object>(model: EntityClass<T>,
                                       id: string | number,
-                                      collection: Collection<T> = model.getCollection()): Promise<T> {
+                                      collection: Collection<T> = getCollection(model)): Promise<T> {
     const doc = await this._db
       .collection(collection.name)
       .doc("" + id)
@@ -156,12 +166,12 @@ export default class FirestoreOrm extends SimpleOrm {
     if (doc.exists) {
       let data: any = doc.data();
       // get the model from simple orm using the model id and not the collection key
-      const modelId = data[model.idAttribute];
+      const modelId = data[getIdAttribute(model)];
 
       if (modelId) {
-        if (collection !== model.getCollection()) {
+        if (collection !== getCollection(model)) {
           const modelDoc = await this._db
-            .collection(model.getCollection().name)
+            .collection(getCollection(model).name)
             .doc("" + modelId)
             .get();
           if (modelDoc.exists) {
@@ -173,9 +183,9 @@ export default class FirestoreOrm extends SimpleOrm {
 
       if (!res) {
         res = new model() as T;
-        res.cid = new Cid();
+        // res.cid = new Cid();
       }
-      res = await res.fetch(data);
+      res = fetch(res, data);
     } else {
       res = null;
     }

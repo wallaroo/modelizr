@@ -1,5 +1,6 @@
-export type Constructor<T> = new(...x: any[]) => T;
+export type Constructor<T> = { new(...x: any[]): T };
 
 export type Class<T> = Constructor<T> & {
-    prototype: T;
+  prototype: T;
+  name: string;
 }

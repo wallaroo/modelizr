@@ -3,21 +3,21 @@ import Model, {ModelClass} from "./Model";
 import Query from "./Query";
 import {OrmDriver} from "./OrmDriver";
 import {Operator} from "./Query";
+import { Entity, EntityClass, getIdAttribute } from './utils';
 
 const pluralize = require("pluralize");
 
-export type Opts<T extends Model> = {
+export type Opts<T extends object> = {
   name?: string,
-  keyAttribute?: string
+  keyAttribute?: keyof T
 }
 
-class Collection<T extends Model> {
+class Collection<T extends object> {
   name: string;
-  model: ModelClass<T>;
-  keyAttribute: string;
-  static _ormDriver: OrmDriver;
+  model: EntityClass<T>;
+  keyAttribute: keyof T;
 
-  constructor(model: ModelClass<T>, {name, keyAttribute}: Opts<T> = {}) {
+  constructor(model: EntityClass<T>, {name, keyAttribute}: Opts<T> = {}) {
     this.model = model;
 
     if (name)
@@ -25,10 +25,10 @@ class Collection<T extends Model> {
     else
       this.name = pluralize(model.name.toLowerCase());
 
-    if (keyAttribute)
+    if (keyAttribute) {
       this.keyAttribute = keyAttribute;
-    else {
-      this.keyAttribute = model.idAttribute;
+    }else {
+      this.keyAttribute = getIdAttribute(model) as keyof T;
     }
   }
 
@@ -36,27 +36,28 @@ class Collection<T extends Model> {
   //     return this.getClass()._ormDriver || this.model.getOrmDriver();
   // }
 
-  getKey(model: T): string | number | null {
-    const res = model.get(this.keyAttribute);
+  getKey(model: Entity<T>){
+    const res = model[this.keyAttribute];
     if (res !== null && typeof res !== "number" && typeof res !== "string")
-      throw new Error(`invalid key ${this.keyAttribute} of type ${typeof res} for model ${model.getClass().name}`);
-    return res as string | number | null;
+      throw new Error(`invalid key ${this.keyAttribute} of type ${typeof res} for model ${model.constructor.name}`);
+    return res;
   }
 
-  setKey(model: T, key: string): T {
-    return model.set<T>({[this.keyAttribute]: key});
+  setKey(model: Entity<T>, key: any): Entity<T> {
+    model[this.keyAttribute] = key;
+    return model;
   }
 
   async save(ormDriver: OrmDriver, ...models: Array<T>): Promise<T | Array<T>> {
     if (models.length > 1) {
       const promises = [];
       for (let model of models) {
-        model = await model.save(ormDriver);
+        model = await ormDriver.save(model);
         promises.push(ormDriver.save(model, this))
       }
       return Promise.all(promises);
     } else if (models.length > 0) {
-      models[0] = await models[0].save(ormDriver);
+      models[0] = await ormDriver.save(models[0]);
       return ormDriver.save(models[0], this);
     } else {
       throw new Error("invalid parameters");

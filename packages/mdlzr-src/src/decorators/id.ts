@@ -1,5 +1,7 @@
-import Model from "../Model";
+import { Entity, EntityClass, initEntityClass } from '../utils';
 
-export default function id(target: Model, key: string): void {
-  target.getClass().idAttribute = key;
+export default function id<T extends object>(target: Entity<T>, key: keyof T): void {
+  const clazz = target.constructor;
+  initEntityClass(clazz);
+  clazz.__mdlzr__.idAttribute = key;
 }

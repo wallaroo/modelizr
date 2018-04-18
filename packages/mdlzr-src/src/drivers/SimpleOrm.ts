@@ -1,7 +1,7 @@
 import {OrmDriver} from "../OrmDriver";
 import {FieldValue, ModelClass} from "../Model"
 import Model, {Cid} from "../Model";
-import {objectDif} from "../utils";
+import { Entity, EntityClass, fetch, getAttributes, getCid, getCollection, getId, objectDif } from "../utils";
 
 import Query from "../Query";
 import Collection from "../Collection";
@@ -10,8 +10,8 @@ import {FieldObject} from "../Model";
 
 const merge = require("lodash.merge");
 
-export type StoreItem = {
-  model: Model,
+export type StoreItem<T extends object> = {
+  model: Entity<T>,
   attributes: FieldObject,
   changes: FieldObject | null,
 }
@@ -20,10 +20,10 @@ export default class SimpleOrm implements OrmDriver {
   _lastId: number = 0;
   _store: {
     "byCid": {
-      [cid: string]: Model
+      [cid: string]: Entity<any>
     },
     "byId": {
-      [model: string]: { [id: string]: Cid }
+      [model: string]: { [id: string]: string }
     }
   } = {
     byCid: {},
@@ -31,8 +31,8 @@ export default class SimpleOrm implements OrmDriver {
   };
 
   constructor(opts?: {
-    executeQuery: (modelClass: ModelClass, query: Query<Model>) => Promise<Model[]>,
-    observeQuery: (modelClass: ModelClass, query: Query<Model>) => void
+    executeQuery: <T extends object>(modelClass: EntityClass<T>, query: Query<T>) => Promise<T>,
+    observeQuery: <T extends object>(modelClass: EntityClass<T>, query: Query<T>) => void
   }) {
     //$FlowFixMe
     Object.assign(this, opts);
@@ -41,9 +41,9 @@ export default class SimpleOrm implements OrmDriver {
   /**
    * gets the model by its id or null if doesn't exists
    */
-  async getModelById<T extends Model>(model: ModelClass<T>,
+  async getModelById<T extends object>(model: EntityClass<T>,
                                       id: string | number,
-                                      collection: Collection<T> = model.getCollection()): Promise<T | null> {
+                                      collection: Collection<T> = getCollection(model)): Promise<T | null> {
     let res = null;
     const cid = this.getCidById(model, id);
     if (cid) {
@@ -55,49 +55,53 @@ export default class SimpleOrm implements OrmDriver {
   /**
    * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
    */
-  getModelByCid(cid: Cid): Model | null {
-    return this._store.byCid[`${cid.toString()}`];
+  getModelByCid<T extends object>(cid: string): Entity<T> | null {
+    return this._store.byCid[`${cid}`];
   }
 
-  getCidById(model: ModelClass, id: string | number): Cid | null {
-    const storeItem = this._store.byId[model.getCollection().name];
+  getCidById<T extends object>(model: EntityClass<T>, id: string | number): string | null {
+    const storeItem = this._store.byId[getCollection(model).name];
     return storeItem ? storeItem[`${id}`] : null;
   }
 
   /**
    * Upserts the model in the ORM
    */
-  async save<T extends Model>(model: T, collection: Collection<T> = model.getClass().getCollection()): Promise<T> {
-    let modelId = collection.getKey(model);
+  async save<T extends object>(model: Entity<T>, collection: Collection<T> = getCollection(model.constructor)): Promise<Entity<T>> {
+    let modelId:any = collection.getKey(model);
     if (!modelId) {
       modelId = this._lastId++;
-      model = collection.setKey(model, "" + modelId);
+      model = collection.setKey(model, `${modelId}`);
     }
-    model = model.fetch(model.getAttributes());
+    model = fetch(model, getAttributes(model));
     if (!this._store.byId[collection.name])
       this._store.byId[collection.name] = {};
-    this._store.byId[collection.name][modelId] = model.cid;
-    this._store.byCid[model.cid.toString()] = model;
+    this._store.byId[collection.name][modelId] = getCid(model);
+    this._store.byCid[getCid(model)] = model;
     return model;
   }
 
   /**
    * Removes the model in the ORM
    */
-  async delete<T extends Model>(model: T, collection: Collection<T> = model.getClass().getCollection()): Promise<void> {
-    const id = model.getId();
+  async delete<T extends object>(model: Entity<T>, collection: Collection<T> = getCollection(model.constructor)): Promise<void> {
+    const id = getId(model);
     if (id !== null) {
-      delete this._store.byId[collection.name]["" + id];
+      delete this._store.byId[collection.name][`${id}`];
     }
-    delete this._store.byCid[model.cid.toString()];
+    delete this._store.byCid[getCid(model)];
 
   }
 
-  observeQuery<T extends Model>(model: ModelClass<T>, query: Query<T>, handler: (array: T[]) => void): ISubscription {
+  observeQuery<T extends object>(model: EntityClass<T>, query: Query<T>, handler: (array: T[]) => void): ISubscription {
     throw "implement me"
   }
 
-  async executeQuery<T extends Model>(model: ModelClass<T>, query: Query<T>): Promise<T[]> {
+  async executeQuery<T extends object>(model: EntityClass<T>, query: Query<T>): Promise<T[]> {
     throw "implement me"
+  }
+
+  find<T extends object>(model: EntityClass<T>):Query<T>{
+    return new Query<T>(this, model);
   }
 }

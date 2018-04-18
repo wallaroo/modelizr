@@ -5,6 +5,7 @@ import {ISubscription} from "rxjs/Subscription"
 import Model, {IObservable, ModelClass} from "./Model"
 
 import Collection from "./Collection";
+import { EntityClass, getCollection, isEntityClass } from './utils';
 
 export type Operator = "==" | ">=" | ">" | "<" | "<=";
 type WhereClause = {
@@ -15,8 +16,8 @@ type WhereClause = {
 
 const whereRegexp = /^(\w*)\s?(==|>|<|>=|<=)\s?((['"]\w*['"])|(\d*))$/;
 
-export default class Query<T extends Model> implements IObservable {
-  model: ModelClass<T>;
+export default class Query<T extends object> implements IObservable {
+  model: EntityClass<T>;
   collection: Collection<T>;
   ormDriver: OrmDriver;
   _orderBy: string[] | null = null;
@@ -24,11 +25,11 @@ export default class Query<T extends Model> implements IObservable {
   _limit: number | null = null;
   private _whereClauses: WhereClause[] | null = null;
 
-  constructor(ormDriver: OrmDriver, model: ModelClass<T> | Collection<T>) {
+  constructor(ormDriver: OrmDriver, model: EntityClass<T> | Collection<T>) {
     this.ormDriver = ormDriver;
-    if (Model.isPrototypeOf(model)) {
-      this.model = model as ModelClass<T>;
-      this.collection = this.model.getCollection();
+    if (isEntityClass<T>(model)) {
+      this.model = model;
+      this.collection = getCollection(this.model);
     } else if (model instanceof Collection) {
       this.model = model.model;
       this.collection = model;
@@ -57,7 +58,7 @@ export default class Query<T extends Model> implements IObservable {
   }
 
   subscribe(handler: (array: T[]) => void): ISubscription {
-    return this.model.observeQuery(this.ormDriver, this, handler);
+    return this.ormDriver.observeQuery(this.model, this, handler);
   }
 
   observe = this.subscribe;
@@ -89,6 +90,6 @@ export default class Query<T extends Model> implements IObservable {
   }
 
   async exec(): Promise<T[]> {
-    return this.model.executeQuery(this.ormDriver, this);
+    return this.ormDriver.executeQuery(this.model, this);
   }
 }

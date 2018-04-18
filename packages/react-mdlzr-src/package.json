@@ -13,7 +13,7 @@
     "mdlzr": "^0.1.10",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
-    "typescript": "^2.7.2"
+    "typescript": "^2.8.1"
   },
   "peerDependencies": {
     "mdlzr": "^0.1.0",
