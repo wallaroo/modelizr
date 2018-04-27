@@ -3,12 +3,13 @@
     "target": "es2017",
     "module": "commonjs",
     "rootDir": "./",
-    "sourceRoot": "./",
     "lib": ["dom", "es2017","es2015"],
+    "inlineSourceMap": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "moduleResolution": "node",
-    "inlineSourceMap": true
+    "strict": true,
+    "strictPropertyInitialization": false
   },
   "include": ["**/*.test.ts"]
 }

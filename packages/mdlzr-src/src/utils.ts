@@ -5,6 +5,8 @@ import { Class } from './Classes';
 import { IAttrTypes } from './IAttrTypes';
 import { IFieldObject } from './IFieldObject';
 
+const pick = require('lodash.pick');
+const omit = require('lodash.omit');
 let cid = 1;
 
 export type MdlzrDescriptor<T extends object> = {
@@ -29,6 +31,13 @@ export type EntityClass<T extends object> = {
   __mdlzr__: MdlzrDescriptor<T>;
 }
 
+export type MaybeEntityClass<T extends object> = {
+  new(...x: any[]): Entity<T>
+  prototype: T;
+  name: string;
+  __mdlzr__?: MdlzrDescriptor<T>;
+}
+
 export type Entity<T extends object> = T & { __mdlzr__?: MdlzrInstance<T>, constructor: EntityClass<T> }
 
 /**
@@ -36,7 +45,7 @@ export type Entity<T extends object> = T & { __mdlzr__?: MdlzrInstance<T>, const
  * @param obj1
  * @param obj2
  */
-export function objectDif<T1 extends object,T2 extends object>(obj1: T1, obj2: T2): Partial<T1 & T2> | null {
+export function objectDif<T1 extends object, T2 extends object>(obj1: T1, obj2: T2): Partial<T1 & T2> | null {
   if (!obj1) {
     return obj2;
   } else if (!obj2) {
@@ -72,11 +81,16 @@ export function getIdAttribute<T extends object>(entity: Entity<T> | EntityClass
   return mdlzr.idAttribute;
 }
 
-export function getCollection<T extends object>(clazz: EntityClass<T>): Collection<T> {
-  if (!clazz.__mdlzr__.collection) {
-    clazz.__mdlzr__.collection = new Collection(clazz);
+export function getCollection<T extends object>(clazz: MaybeEntityClass<T>): Collection<T> {
+  if (isEntityClass<T>(clazz)) {
+    if (!clazz.__mdlzr__.collection) {
+      clazz.__mdlzr__.collection = new Collection(clazz);
+    }
+    return clazz.__mdlzr__.collection;
   }
-  return clazz.__mdlzr__.collection;
+  else{
+    throw new Error(`class ${clazz.name} isn't an Entity` );
+  }
 }
 
 export function initEntityClass<T extends object>(entity: EntityClass<T>): void {
@@ -89,6 +103,13 @@ export function initEntityClass<T extends object>(entity: EntityClass<T>): void 
         attrTypes: {}
       } as MdlzrDescriptor<T>
     });
+  }
+  if (!(entity.prototype as any)[ 'toJSON' ]) {
+    (entity.prototype as any)[ 'toJSON' ] = function(){
+      let obj = Object.assign(this);
+      let keys = Object.keys(obj).concat(Object.keys(this.constructor.prototype));
+      return pick(obj, keys)
+    }
   }
 }
 
@@ -172,7 +193,7 @@ export function observeChanges<T extends object>(model: Entity<T>, handler: (mod
   return mdlzr.subject.subscribe(handler);
 }
 
-export function getAttributes<T extends object>(model: Entity<T>):IFieldObject<T> {
+export function getAttributes<T extends object>(model: Entity<T>): IFieldObject<T> {
   const mdlzr = getMdlzrInstance(model);
   return Object.assign({}, mdlzr.attributes, mdlzr.changes) as IFieldObject<T>;
 }
@@ -191,14 +212,11 @@ export function fetch<T extends object>(model: Entity<T>, setHash: IFieldObject<
     handleChanges(model, getAttributes(model), changes);
     res = clone(model);
     const resMdlzr = getMdlzrInstance(res);
-    Object.assign(getAttributes(res), changes);
-    resMdlzr.changes = objectDif(getAttributes(res), resMdlzr.changes) || {} as any;
-    if (mdlzr.subject.observers.length) {
-      mdlzr.subject.next(res);
-    }
+    Object.assign(resMdlzr.attributes, changes);
+    resMdlzr.changes = omit(resMdlzr.changes, Object.keys(changes))
   } else {
     const resMdlzr = getMdlzrInstance(res);
-    Object.assign(getAttributes(res), resMdlzr.changes);
+    Object.assign(resMdlzr.attributes, resMdlzr.changes);
     resMdlzr.changes = {};
   }
   return res;

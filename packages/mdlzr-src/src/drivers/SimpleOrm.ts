@@ -1,5 +1,15 @@
 import { OrmDriver } from "../OrmDriver";
-import { Entity, EntityClass, fetch, getAttributes, getCid, getCollection, getId } from "../utils";
+import {
+  Entity,
+  EntityClass,
+  fetch,
+  getAttributes,
+  getCid,
+  getCollection,
+  getId,
+  isEntityClass,
+  MaybeEntityClass
+} from "../utils";
 
 import Query from "../Query";
 import Collection from "../Collection";
@@ -39,7 +49,7 @@ export default class SimpleOrm implements OrmDriver {
   /**
    * gets the model by its id or null if doesn't exists
    */
-  async getModelById<T extends object>(model: EntityClass<T>,
+  async getModelById<T extends object>(model: MaybeEntityClass<T>,
                                       id: string | number,
                                       collection: Collection<T> = getCollection(model)): Promise<T | null> {
     let res = null;
@@ -57,7 +67,7 @@ export default class SimpleOrm implements OrmDriver {
     return this._store.byCid[`${cid}`];
   }
 
-  getCidById<T extends object>(model: EntityClass<T>, id: string | number): string | null {
+  getCidById<T extends object>(model: MaybeEntityClass<T>, id: string | number): string | null {
     const storeItem = this._store.byId[getCollection(model).name];
     return storeItem ? storeItem[`${id}`] : null;
   }
@@ -65,7 +75,7 @@ export default class SimpleOrm implements OrmDriver {
   /**
    * Upserts the model in the ORM
    */
-  async save<T extends object>(model: Entity<T>, collection: Collection<T> = getCollection(model.constructor)): Promise<Entity<T>> {
+  async save<T extends object>(model: Entity<T>, collection: Collection<T> = getCollection(model.constructor)): Promise<T> {
     let modelId:any = collection.getKey(model);
     if (!modelId) {
       modelId = this._lastId++;
@@ -99,7 +109,11 @@ export default class SimpleOrm implements OrmDriver {
     throw "implement me"
   }
 
-  find<T extends object>(model: EntityClass<T>):Query<T>{
-    return new Query<T>(this, model);
+  find<T extends object>(model: MaybeEntityClass<T>):Query<T>{
+    if (isEntityClass<T>(model)) {
+      return new Query<T>(this, model);
+    }else{
+      throw new Error(`class ${model.name} isn't an Entity`)
+    }
   }
 }

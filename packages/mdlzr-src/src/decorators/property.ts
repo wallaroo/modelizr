@@ -77,8 +77,9 @@ export default (descriptor: IAttrType = {}) => function property<T extends objec
   }
   Object.defineProperty(target, key, {
     enumerable: true,
+    configurable: true,
     get: createGetter(key),
-    set: createSetter(key),
+    set: createSetter(key)
   });
   clazz.__mdlzr__.attrTypes[ key ] = descriptor;
 }

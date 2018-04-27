@@ -5,3 +5,4 @@ es
 /packages/*-dist/**/*.js
 /packages/*-dist/**/*.ts
 /packages/**/package-lock.json
+/packages/**/*.test.js

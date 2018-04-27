@@ -38,7 +38,7 @@ class TestModel {
   property: string = "default";
 
   @property()
-  child: ChildModel;
+  child: ChildModel | null;
 }
 
 test("Model Class attrTypes", () => {

@@ -1,6 +1,6 @@
 import Query from "./Query";
 import { OrmDriver } from "./OrmDriver";
-import { Entity, EntityClass, getIdAttribute } from './utils';
+import { Entity, EntityClass, fetch, getIdAttribute, isEntityClass, MaybeEntityClass } from './utils';
 
 const pluralize = require("pluralize");
 
@@ -14,18 +14,23 @@ class Collection<T extends object> {
   model: EntityClass<T>;
   keyAttribute: keyof T;
 
-  constructor(model: EntityClass<T>, {name, keyAttribute}: Opts<T> = {}) {
-    this.model = model;
+  constructor(model: MaybeEntityClass<T>, {name, keyAttribute}: Opts<T> = {}) {
+    if (isEntityClass(model)) {
+      this.model = model;
 
-    if (name)
-      this.name = name;
-    else
-      this.name = pluralize(model.name.toLowerCase());
+      if (name)
+        this.name = name;
+      else
+        this.name = pluralize(model.name.toLowerCase());
 
-    if (keyAttribute) {
-      this.keyAttribute = keyAttribute;
-    }else {
-      this.keyAttribute = getIdAttribute(model) as keyof T;
+      if (keyAttribute) {
+        this.keyAttribute = keyAttribute;
+      } else {
+        this.keyAttribute = getIdAttribute(model) as keyof T;
+      }
+    }
+    else {
+      throw new Error(`class ${model.name} isn't an Entity`)
     }
   }
 
@@ -33,16 +38,15 @@ class Collection<T extends object> {
   //     return this.getClass()._ormDriver || this.model.getOrmDriver();
   // }
 
-  getKey(model: Entity<T>){
-    const res = model[this.keyAttribute];
-    if (res !== null && typeof res !== "number" && typeof res !== "string")
+  getKey(model: Entity<T>) {
+    const res = model[ this.keyAttribute ];
+    if (res !== undefined && res !== null && typeof res !== "number" && typeof res !== "string")
       throw new Error(`invalid key ${this.keyAttribute} of type ${typeof res} for model ${model.constructor.name}`);
     return res;
   }
 
   setKey(model: Entity<T>, key: any): Entity<T> {
-    model[this.keyAttribute] = key;
-    return model;
+    return fetch(model, {[ this.keyAttribute ]: key} as any);
   }
 
   async save(ormDriver: OrmDriver, ...models: Array<T>): Promise<T | Array<T>> {
@@ -54,8 +58,8 @@ class Collection<T extends object> {
       }
       return Promise.all(promises);
     } else if (models.length > 0) {
-      models[0] = await ormDriver.save(models[0]);
-      return ormDriver.save(models[0], this);
+      models[ 0 ] = await ormDriver.save(models[ 0 ]);
+      return ormDriver.save(models[ 0 ], this);
     } else {
       throw new Error("invalid parameters");
     }
