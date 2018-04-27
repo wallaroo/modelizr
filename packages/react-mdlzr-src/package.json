@@ -1,6 +1,6 @@
 {
   "name": "react-mdlzr-src",
-  "version": "0.2.0-alpha.3649f88d",
+  "version": "0.1.10",
   "description": "HOC to use with mdlzr",
   "main": "src/index.js",
   "private": true,
@@ -9,16 +9,16 @@
     "linkDeps": "npm link typescript react react-dom"
   },
   "devDependencies": {
-    "jest": "^21.2.1",
-    "mdlzr": "^0.2.0-alpha.3649f88d",
-    "react": "^16.2.0",
-    "react-dom": "^16.2.0",
-    "typescript": "^2.8.1"
+    "jest": "^22.4.3",
+    "mdlzr": "^0.1.10",
+    "react": "^16.3.2",
+    "react-dom": "^16.3.2",
+    "typescript": "^2.8.3"
   },
   "peerDependencies": {
-    "mdlzr": "^0.1.0",
-    "react": "^16.2.0",
-    "react-dom": "^16.2.0"
+    "mdlzr": "^0.1.10",
+    "react": "^16.3.2",
+    "react-dom": "^16.3.2"
   },
   "dependencies": {
     "@types/firebase": "^3.2.1",
@@ -26,6 +26,7 @@
     "@types/node": "^8.5.2",
     "@types/react": "^16.0.40",
     "@types/react-dom": "^16.0.4",
-    "lodash.pick": "^4.4.0"
+    "lodash.pick": "^4.4.0",
+    "hoek": "^5.0.3"
   }
 }
