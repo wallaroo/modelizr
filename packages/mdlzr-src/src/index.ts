@@ -1,6 +1,7 @@
 import "core-js/shim"
-export * from "./Model"
-export {default as Model} from "./Model"
+
 export {default as Query} from "./Query"
 export {default as Collection} from "./Collection"
 export * from "./decorators"
+export * from "./IObservable"
+export * from "rxjs/Subscription"

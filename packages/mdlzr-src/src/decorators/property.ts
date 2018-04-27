@@ -1,4 +1,3 @@
-import { AttrType } from "../Model";
 import "reflect-metadata";
 import {
   initEntityClass,
@@ -10,6 +9,7 @@ import {
   isEntity,
   MdlzrInstance, getCid, haveSameCid
 } from '../utils';
+import { IAttrType } from '../IAttrType';
 
 function createGetter<T extends object>(key: keyof T) {
   return function getter(this: Entity<T>) {
@@ -50,7 +50,7 @@ function handleChanges<T extends object>(
   }
 }
 
-export default (descriptor: AttrType = {}) => function property<T extends object>(this: any, target: T, key: string): void {
+export default (descriptor: IAttrType = {}) => function property<T extends object>(this: any, target: T, key: string): void {
   const clazz: EntityClass<T> = target.constructor as EntityClass<T>;
   initEntityClass(clazz);
   //initEntity(target);

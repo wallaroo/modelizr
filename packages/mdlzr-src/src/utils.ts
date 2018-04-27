@@ -1,9 +1,9 @@
-import { AttrTypes, FieldObject } from './Model';
 import { Subscription } from 'rxjs/Subscription';
 import { Subject } from 'rxjs/Subject';
 import Collection from './Collection';
-import Model from './Model';
 import { Class } from './Classes';
+import { IAttrTypes } from './IAttrTypes';
+import { IFieldObject } from './IFieldObject';
 
 let cid = 1;
 
@@ -11,7 +11,7 @@ export type MdlzrDescriptor<T extends object> = {
   idAttribute: keyof T
   collection: Collection<T>
   name: string,
-  attrTypes: AttrTypes
+  attrTypes: IAttrTypes
 }
 
 export type MdlzrInstance<T, KEYS extends keyof T = keyof T> = {
@@ -36,7 +36,7 @@ export type Entity<T extends object> = T & { __mdlzr__?: MdlzrInstance<T>, const
  * @param obj1
  * @param obj2
  */
-export function objectDif(obj1: { [ key: string ]: any }, obj2: { [ key: string ]: any }): { [ key: string ]: any } | null {
+export function objectDif<T1 extends object,T2 extends object>(obj1: T1, obj2: T2): Partial<T1 & T2> | null {
   if (!obj1) {
     return obj2;
   } else if (!obj2) {
@@ -44,11 +44,11 @@ export function objectDif(obj1: { [ key: string ]: any }, obj2: { [ key: string 
   } else {
     const res = {} as { [ key: string ]: any };
     for (let fieldname of Object.keys(obj2)) {
-      if (obj2[ fieldname ] !== obj1[ fieldname ]) {
-        res[ fieldname ] = obj2[ fieldname ];
+      if ((obj2 as any)[ fieldname ] !== (obj1 as any)[ fieldname ]) {
+        res[ fieldname ] = (obj2 as any)[ fieldname ];
       }
     }
-    return isEmpty(res) ? null : res;
+    return (isEmpty(res) ? null : res) as Partial<T1 & T2> | null;
   }
 }
 
@@ -56,7 +56,7 @@ export function isEmpty(obj: { [ key: string ]: any } | null) {
   return !obj || Object.keys(obj).length === 0
 }
 
-export function getAttrTypes<T extends object>(entity: Class<T>): AttrTypes {
+export function getAttrTypes<T extends object>(entity: Class<T>): IAttrTypes {
   return getMdlzrDescriptor(entity).attrTypes;
 }
 
@@ -146,7 +146,7 @@ export function getMdlzrDescriptor<T extends object>(model: EntityClass<T> | Ent
     return model.__mdlzr__;
   } else if (isEntity(model)) {
     return model.constructor.__mdlzr__;
-  } else{
+  } else {
     throw new Error(`model ${model.constructor.name} is not an entity`);
 
   }
@@ -172,23 +172,23 @@ export function observeChanges<T extends object>(model: Entity<T>, handler: (mod
   return mdlzr.subject.subscribe(handler);
 }
 
-export function getAttributes<T extends object>(model: Entity<T>) {
-  const mdlzr = getMdlzrInstance(model)
-  return Object.assign({}, mdlzr.attributes, mdlzr.changes);
+export function getAttributes<T extends object>(model: Entity<T>):IFieldObject<T> {
+  const mdlzr = getMdlzrInstance(model);
+  return Object.assign({}, mdlzr.attributes, mdlzr.changes) as IFieldObject<T>;
 }
 
-export function resolveAttributes<T extends object>(clazz: EntityClass<T>, setHash: FieldObject):FieldObject {
+export function resolveAttributes<T extends object>(clazz: EntityClass<T>, setHash: IFieldObject<T>): IFieldObject<T> {
   // TODO implement me
   return setHash;
 }
 
-export function fetch<T extends object>(model: Entity<T>, setHash: FieldObject):Entity<T>{
+export function fetch<T extends object>(model: Entity<T>, setHash: IFieldObject<T>): Entity<T> {
   const mdlzr = getMdlzrInstance(model);
   setHash = resolveAttributes(model.constructor, setHash);
   const changes = objectDif(getAttributes(model), setHash);
   let res = model;
   if (changes) {
-    handleChanges(model,getAttributes(model), changes);
+    handleChanges(model, getAttributes(model), changes);
     res = clone(model);
     const resMdlzr = getMdlzrInstance(res);
     Object.assign(getAttributes(res), changes);
@@ -196,7 +196,7 @@ export function fetch<T extends object>(model: Entity<T>, setHash: FieldObject):
     if (mdlzr.subject.observers.length) {
       mdlzr.subject.next(res);
     }
-  }else{
+  } else {
     const resMdlzr = getMdlzrInstance(res);
     Object.assign(getAttributes(res), resMdlzr.changes);
     resMdlzr.changes = {};
@@ -205,17 +205,17 @@ export function fetch<T extends object>(model: Entity<T>, setHash: FieldObject):
 }
 
 export function handleChanges<T extends object>(
-  model:Entity<T>,
-  current: FieldObject,
-  next: FieldObject
+  model: Entity<T>,
+  current: IFieldObject<T>,
+  next: Partial<IFieldObject<T>>
 ) {
-  for(const attrName in next){
-    handleChange.call(model,getMdlzrInstance(model),attrName,current[attrName], next[attrName])
+  for (const attrName in next) {
+    handleChange.call(model, getMdlzrInstance(model), attrName, current[ attrName ], next[ attrName ])
   }
 }
 
 export function handleChange<T extends object>(
-  this:Entity<T>,
+  this: Entity<T>,
   mdlzr: MdlzrInstance<T>,
   key: keyof T,
   currentValue: any,
@@ -225,10 +225,10 @@ export function handleChange<T extends object>(
     mdlzr.subscriptions[ getCid(currentValue) ].unsubscribe();
   }
   if (isEntity(nextValue) && (!currentValue || !haveSameCid(currentValue, nextValue))) {
-    mdlzr.subscriptions[ getCid(nextValue) ] = getMdlzrInstance(nextValue).subject.subscribe((child:any)=>this[key]=child);
+    mdlzr.subscriptions[ getCid(nextValue) ] = getMdlzrInstance(nextValue).subject.subscribe((child: any) => this[ key ] = child);
   }
 }
 
-export function getRef<T extends object>(model: Entity<T>): { [k: string]: string | number | null } {
-  return {[getIdAttribute(model)]: getId(model)}
+export function getRef<T extends object>(model: Entity<T>): { [ k: string ]: string | number | null } {
+  return {[ getIdAttribute(model) ]: getId(model)}
 }

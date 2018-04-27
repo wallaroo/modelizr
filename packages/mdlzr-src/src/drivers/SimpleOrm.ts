@@ -1,19 +1,17 @@
-import {OrmDriver} from "../OrmDriver";
-import {FieldValue, ModelClass} from "../Model"
-import Model, {Cid} from "../Model";
-import { Entity, EntityClass, fetch, getAttributes, getCid, getCollection, getId, objectDif } from "../utils";
+import { OrmDriver } from "../OrmDriver";
+import { Entity, EntityClass, fetch, getAttributes, getCid, getCollection, getId } from "../utils";
 
 import Query from "../Query";
 import Collection from "../Collection";
-import {ISubscription} from "rxjs/Subscription";
-import {FieldObject} from "../Model";
+import { ISubscription } from "rxjs/Subscription";
+import { IFieldObject } from '../IFieldObject';
 
 const merge = require("lodash.merge");
 
 export type StoreItem<T extends object> = {
   model: Entity<T>,
-  attributes: FieldObject,
-  changes: FieldObject | null,
+  attributes: IFieldObject<T>,
+  changes: IFieldObject<T> | null,
 }
 
 export default class SimpleOrm implements OrmDriver {

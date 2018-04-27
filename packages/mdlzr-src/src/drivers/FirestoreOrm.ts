@@ -1,8 +1,7 @@
 import SimpleOrm from "./SimpleOrm";
-import Model, {Cid, ModelClass} from "../Model";
 import Query from "../Query";
 import Collection from "../Collection";
-import {ISubscription} from "rxjs/Subscription"
+import { ISubscription } from "rxjs/Subscription"
 import * as types from "@firebase/firestore-types";
 import {
   Entity,
@@ -12,8 +11,12 @@ import {
   getAttrTypes,
   getCollection,
   getId,
-  getIdAttribute, getRef, isEntity, isEntityClass
+  getIdAttribute,
+  getRef,
+  isEntity,
+  isEntityClass
 } from '../utils';
+import { IFieldObject } from '../IFieldObject';
 
 export default class FirestoreOrm extends SimpleOrm {
   private _db: types.FirebaseFirestore;
@@ -35,7 +38,7 @@ export default class FirestoreOrm extends SimpleOrm {
         snapshot
           .forEach(
             (doc) => {
-              res.push(fetch(new model(),doc.data()));
+              res.push(fetch(new model(),doc.data() as IFieldObject<T>));
             }
           )
         ;
@@ -67,7 +70,7 @@ export default class FirestoreOrm extends SimpleOrm {
       (doc) => {
         res.push(fetch(new model(),{
           [getIdAttribute(model)]:doc.id,
-          ...doc.data()})
+          ...doc.data()} as IFieldObject<T>)
         );
       }
     );

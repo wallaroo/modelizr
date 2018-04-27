@@ -1,8 +1,5 @@
-import Model, {ModelClass} from "./Model";
-
 import Query from "./Query";
-import {OrmDriver} from "./OrmDriver";
-import {Operator} from "./Query";
+import { OrmDriver } from "./OrmDriver";
 import { Entity, EntityClass, getIdAttribute } from './utils';
 
 const pluralize = require("pluralize");

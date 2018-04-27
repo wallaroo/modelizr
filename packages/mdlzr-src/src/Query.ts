@@ -1,11 +1,11 @@
-import {OrmDriver} from "./OrmDriver";
-
-const union = require("lodash.union");
-import {ISubscription} from "rxjs/Subscription"
-import Model, {IObservable, ModelClass} from "./Model"
+import { OrmDriver } from "./OrmDriver";
+import { ISubscription } from "rxjs/Subscription"
 
 import Collection from "./Collection";
 import { EntityClass, getCollection, isEntityClass } from './utils';
+import { IObservable } from './IObservable';
+
+const union = require("lodash.union");
 
 export type Operator = "==" | ">=" | ">" | "<" | "<=";
 type WhereClause = {
