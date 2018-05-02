@@ -60,22 +60,48 @@ export default class FirestoreOrm extends SimpleOrm {
 
   async executeQuery<T extends object>(model: EntityClass<T>,
                                        query: Query<T>): Promise<Array<T>> {
-    let res: T[] = [];
     let collection = this._db.collection(query.collection.name);
     let _query = this.applyQuery(collection, query);
 
     const snapshot = await _query.get();
-
+    const promises : Promise<T>[] = [];
     snapshot.forEach(
       (doc) => {
         const data = doc.data();
-        const modelFetched = fetch(new model(), {
+        const modelFetched = this.deserialize(model, {
           [ getIdAttribute(model) ]: doc.id,
           ...data
         } as IFieldObject<T>);
-        res.push(modelFetched);
+        promises.push(modelFetched);
       }
     );
+    return Promise.all(promises);
+  }
+
+  async deserialize<T extends object>(model: EntityClass<T>, data: IFieldObject<T>): Promise<Entity<T>> {
+    const res:Entity<T> = new model();
+    const attrTypes = getAttrTypes(model);
+    for (const attrName of Object.keys(attrTypes) as Array<keyof T>) {
+      const attrType = attrTypes[ attrName ];
+      let attrValue: any = data[ attrName ];
+      if (isEntityClass(attrType.type) && attrValue) {
+        if (attrType.embedded) {
+          attrValue = this.deserialize(attrType.type, attrValue);
+        } else {
+          // resolve ref
+          attrValue = await this.getModelById(attrType.type, attrValue[ getIdAttribute(attrType.type) ])
+        }
+      }
+      if (attrType.type === Array && isEntityClass(attrType.itemType) && attrValue) {
+        if (attrType.embedded) {
+          attrValue = attrValue.map((cur: any) => this.deserialize(attrType.itemType as EntityClass<any>, cur));
+        } else {
+          // resolve ref
+          attrValue = await Promise.all(attrValue.map((cur: any) => this.getModelById(attrType.itemType as EntityClass<any>, cur[ getIdAttribute(attrType.itemType) ])));
+        }
+      }
+      res[ attrName ] = attrValue;
+    }
     return res;
   }
 
@@ -103,6 +129,9 @@ export default class FirestoreOrm extends SimpleOrm {
         // TODO check embed
         attrs[ attrName ] = getRef(attrValue);
       }
+      if (attrType.type === Array && attrType.itemType && isEntityClass(attrType.itemType)) {
+        attrs[ attrName ] = attrValue.map((cursor: Entity<any>) => this.getAttributesForDB(cursor));
+      }
     }
     return attrs;
   }
@@ -112,10 +141,13 @@ export default class FirestoreOrm extends SimpleOrm {
     const attrTypes = getAttrTypes(model.constructor);
     const models: Entity<T>[] = [];
     for (let attrName of Object.keys(attrs) as Array<keyof T>) {
-      const attrValue = attrs[ attrName ];
+      const attrValue: any = attrs[ attrName ];
       const attrType = attrTypes[ attrName ];
       if (isEntityClass<any>(attrType.type) && isEntity<T>(attrValue)) {
         models.push(attrValue)
+      }
+      if (attrType.type === Array && isEntityClass(attrType.itemType) && attrValue) {
+        models.push(...attrValue)
       }
     }
     return models;

@@ -5,6 +5,7 @@ import FirestoreOrm from "../src/drivers/FirestoreOrm";
 import * as firebase from "firebase/app";
 import "firebase/auth"
 import "firebase/firestore"
+
 const pick = require("lodash.pick");
 import Collection from "../src/Collection";
 //
@@ -49,9 +50,10 @@ class ChildModel {
 }
 
 class TestModel {
-  constructor(obj?:{[key in keyof TestModel]?:TestModel[key]}){
+  constructor(obj?: {[key in keyof TestModel]?: TestModel[key]}) {
     Object.assign(this, obj);
   }
+
   @id
   @property()
   id: number;
@@ -61,6 +63,9 @@ class TestModel {
 
   @property()
   child: ChildModel | null;
+
+  @property({itemType: ChildModel})
+  childs: ChildModel[];
 }
 
 test("model type", () => {
@@ -113,6 +118,7 @@ test("childmodel", async () => {
   const childChangeHandler = jest.fn();
   let parent = new TestModel();
   parent.child = new ChildModel();
+  parent.childs = [ new ChildModel(), new ChildModel() ];
   // expect(Object.keys(parent._subs).length).toBe(1);
   observeChanges(parent, parentChangeHandler);
   let child = parent.child;
@@ -135,6 +141,10 @@ test("childmodel", async () => {
   parent = await orm.save(parent);
   const childaftersave = parent.child;
   expect(childaftersave).toBeTruthy();
+  expect(parent.childs[0]).toBeTruthy();
+  expect(parent.childs[0]).toBeInstanceOf(ChildModel);
+  expect(parent.childs[0].id).toBeTruthy();
+  expect(parent.childs[1].id).toBeTruthy();
   expect((childaftersave as ChildModel).foo).toBe("barzotto");
 });
 
@@ -150,7 +160,6 @@ test("immutability", async () => {
 });
 
 
-
 test("collection", async () => {
   const collection = new Collection(TestModel, {name: "testCollection", keyAttribute: "property"});
   const parent = new TestModel();
@@ -158,9 +167,9 @@ test("collection", async () => {
   const parent2 = new TestModel({property: "thisisanothertest"});
   const saved11 = await collection.save(orm, parent) as TestModel;
   const saved21 = await orm.save(parent2);
-  const saved12 = await collection.save(orm,saved11) as TestModel;
+  const saved12 = await collection.save(orm, saved11) as TestModel;
   expect(getId(saved11)).toBe(getId(saved12));
-  const res = await collection.findByKey(orm,"thisisatest");
+  const res = await collection.findByKey(orm, "thisisatest");
   expect(getId(saved21)).toBeTruthy();
   const res21 = await orm.getModelById(TestModel, getId(saved21));
   const res2 = await collection.findByKey(orm, "thisisanothertest");
@@ -181,7 +190,9 @@ test("query", async done => {
   let res = await orm.find(TestModel).exec();
   expect(Array.isArray(res)).toBeTruthy();
   expect(res.length).toBe(0);
-  for (const cur of [{"property": "1one"}, {"property": "2two"}, {"property": "3three"}].map((cur)=>new TestModel(cur))) {
+  const models = [ {"property": "1one"}, {"property": "2two"}, {"property": "3three"} ].map((cur) => new TestModel(cur));
+  models[0].childs = [new ChildModel(), new ChildModel()];
+  for (const cur of models) {
     await orm.save(cur)
   }
   res = await orm
@@ -193,10 +204,17 @@ test("query", async done => {
     .limit(10)
     .exec();
   expect(res.length).toBe(3);
-  expect(res[0].property).toBe("1one");
-  expect(res[1].property).toBe("2two");
-  expect(res[2].property).toBe("3three");
-
+  expect(res[ 0 ].property).toBe("1one");
+  expect(res[ 1 ].property).toBe("2two");
+  expect(res[ 2 ].property).toBe("3three");
+  expect(res[0].childs).toBeTruthy();
+  expect(res[0].childs).toBeInstanceOf(Array);
+  expect(res[0].childs[0]).toBeTruthy();
+  expect(res[0].childs[1]).toBeTruthy();
+  expect(res[0].childs[0]).toBeInstanceOf(ChildModel);
+  expect(res[0].childs[1]).toBeInstanceOf(ChildModel);
+  expect(res[0].childs[0].id).toBeTruthy();
+  expect(res[0].childs[1].id).toBeTruthy();
   const query = orm
     .find(TestModel)
     .where("property=='field'")
@@ -205,22 +223,22 @@ test("query", async done => {
     .startAt(4)
     .limit(2);
   let runs = 0;
-  let handler = jest.fn(async (models:TestModel[]) => {
+  let handler = jest.fn(async (models: TestModel[]) => {
     runs++;
     if (runs === 1) {
       expect(models.length).toBe(3);
-      expect(models[0].property).toBe("1one");
-      expect(models[1].property).toBe("2two");
-      expect(models[2].property).toBe("3three");
-      await orm.delete(res[1]);
+      expect(models[ 0 ].property).toBe("1one");
+      expect(models[ 1 ].property).toBe("2two");
+      expect(models[ 2 ].property).toBe("3three");
+      await orm.delete(res[ 1 ]);
     } else if (runs === 2) {
       expect(models.length).toBe(2);
-      expect(models[0].property).toBe("1one");
-      expect(models[1].property).toBe("3three");
+      expect(models[ 0 ].property).toBe("1one");
+      expect(models[ 1 ].property).toBe("3three");
       subscription.unsubscribe();
       done(false);
     }
 
   });
   const subscription = query.subscribe(handler);
-},30000);
+}, 30000);
