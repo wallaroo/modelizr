@@ -226,7 +226,6 @@ export function fetch<T extends object>(model: Entity<T>, setHash?: IFieldObject
     const resMdlzr = getMdlzrInstance(res);
     Object.assign(resMdlzr.attributes, changes);
     resMdlzr.changes = omit(resMdlzr.changes, Object.keys(changes))
-    console.log("changes", changes, resMdlzr)
   }
   return res;
 }

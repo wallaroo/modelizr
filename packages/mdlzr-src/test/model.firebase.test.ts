@@ -51,15 +51,10 @@ beforeEach(async () => {
   return batch.commit()
 });
 
-class BaseClass<T extends object> {
-  static create<T extends object>(this: MaybeEntityClass<T>, obj?: IFieldObject<T>):Entity<T> {
-    let res = new this();
-    console.log("beforefetch", getMdlzrInstance(res), obj);
-    if (obj) {
-      res = fetch(res, obj);
-      console.log("afterfetch", getMdlzrInstance(res));
-    }
-    return res
+class BaseClass{
+  constructor(obj? : IFieldObject<BaseClass>){
+    initEntity(this);
+    Object.assign(this, obj)
   }
 
   @id
@@ -67,13 +62,24 @@ class BaseClass<T extends object> {
   id: number;
 }
 
-class ChildModel extends BaseClass<ChildModel> {
+class ChildModel extends BaseClass{
+  constructor(obj?: IFieldObject<ChildModel>){
+    super(obj);
+    Object.assign(this, obj)
+  }
+
   @property()
   foo: string = "bar";
+
+  @property({itemType: BaseClass})
+  childs: BaseClass[];
 }
 
-class TestModel extends BaseClass<TestModel> {
-
+class TestModel extends BaseClass{
+  constructor(obj?: IFieldObject<TestModel>){
+    super(obj);
+    Object.assign(this, obj)
+  }
   @property()
   property: string = "default";
 
@@ -86,7 +92,7 @@ class TestModel extends BaseClass<TestModel> {
 
 test("model type", () => {
   expect(getAttrTypes(TestModel)[ "property" ]).toBeTruthy();
-  const testModel = TestModel.create({property:"test"});
+  const testModel = new TestModel({property:"test"});
   expect(testModel).toBeInstanceOf(TestModel);
   expect(getMdlzrInstance(testModel)).toBeTruthy();
   expect(testModel.property).toBe("test")
@@ -186,7 +192,7 @@ test("collection", async () => {
   const collection = new Collection(TestModel, {name: "testCollection", keyAttribute: "property"});
   const parent = new TestModel();
   parent.property = "thisisatest";
-  const parent2 = TestModel.create({property: "thisisanothertest"});
+  const parent2 = new TestModel({property: "thisisanothertest"});
   const saved11 = await collection.save(orm, parent) as TestModel;
   const saved21 = await orm.save(parent2);
   const saved12 = await collection.save(orm, saved11) as TestModel;
@@ -212,12 +218,14 @@ test("query", async done => {
   let res = await orm.find(TestModel).exec();
   expect(Array.isArray(res)).toBeTruthy();
   expect(res.length).toBe(0);
-  const models = [ {"property": "1one"}, {"property": "2two"}, {"property": "3three"} ].map((cur) => TestModel.create(cur));
-  models[ 0 ].childs = [ new ChildModel(), new ChildModel() ];
+  const models = [ {"property": "1one"}, {"property": "2two"}, {"property": "3three"} ].map((cur) => new TestModel(cur));
+  models[ 0 ].childs = [ new ChildModel({childs:[new BaseClass()]}), new ChildModel() ];
+  const saved = [];
   for (const cur of models) {
-    console.log("prop", cur.property);
-    await orm.save(cur)
+    saved.push(await orm.save(cur));
   }
+  expect(models[0].childs[0].id).toBeTruthy();
+  expect(models[0].childs[0].childs[0].id).toBeTruthy();
   res = await orm
     .find(TestModel)
     .where("property=='field'")
