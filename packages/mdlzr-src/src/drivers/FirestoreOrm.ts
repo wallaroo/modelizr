@@ -64,7 +64,7 @@ export default class FirestoreOrm extends SimpleOrm {
     let _query = this.applyQuery(collection, query);
 
     const snapshot = await _query.get();
-    const promises : Promise<T>[] = [];
+    const promises: Promise<T>[] = [];
     snapshot.forEach(
       (doc) => {
         const data = doc.data();
@@ -79,7 +79,7 @@ export default class FirestoreOrm extends SimpleOrm {
   }
 
   async deserialize<T extends object>(model: EntityClass<T>, data: IFieldObject<T>): Promise<Entity<T>> {
-    const res:Entity<T> = new model();
+    const res: Entity<T> = new model();
     const attrTypes = getAttrTypes(model);
     for (const attrName of Object.keys(attrTypes) as Array<keyof T>) {
       const attrType = attrTypes[ attrName ];
@@ -165,6 +165,7 @@ export default class FirestoreOrm extends SimpleOrm {
       const doc = this._db.collection(getCollection(model.constructor).name).doc();
       model = getCollection(model.constructor).setKey(model, doc.id);
       attributes = this.getAttributesForDB(model);
+
       await transaction.set(doc, isModelCollection ? attributes : getRef(model));
     }
     return model;

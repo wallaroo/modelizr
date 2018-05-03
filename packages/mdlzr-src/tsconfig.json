@@ -10,7 +10,8 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "moduleResolution": "node",
-    "strict": true
+    "strict": true,
+    "sourceMap": true
   },
   "include": ["src/**/*.ts"]
 }

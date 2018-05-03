@@ -81,7 +81,7 @@ export default class SimpleOrm implements OrmDriver {
       modelId = this._lastId++;
       model = collection.setKey(model, `${modelId}`);
     }
-    model = fetch(model, getAttributes(model));
+    model = fetch(model);
     if (!this._store.byId[collection.name])
       this._store.byId[collection.name] = {};
     this._store.byId[collection.name][modelId] = getCid(model);

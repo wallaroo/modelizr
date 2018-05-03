@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2017",
+    "target": "esnext",
     "module": "commonjs",
     "rootDir": "./",
     "lib": ["dom", "es2017","es2015"],
@@ -9,7 +9,8 @@
     "emitDecoratorMetadata": true,
     "moduleResolution": "node",
     "strict": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "noEmit": true
   },
   "include": ["**/*.test.ts"]
 }

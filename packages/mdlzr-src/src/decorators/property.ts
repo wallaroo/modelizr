@@ -50,10 +50,9 @@ function handleChanges<T extends object>(
   }
 }
 
-export default (descriptor: IAttrType = {}) => function property<T extends object>(this: any, target: T, key: string): void {
+export default (descriptor: IAttrType = {}) => function property<T extends object>(this: any, target: T, key: keyof T): void {
   const clazz: EntityClass<T> = target.constructor as EntityClass<T>;
   initEntityClass(clazz);
-  //initEntity(target);
   const type = Reflect.getMetadata("design:type", target, key);
   if (type !== Object) {
     switch (type) {
@@ -82,4 +81,5 @@ export default (descriptor: IAttrType = {}) => function property<T extends objec
     set: createSetter(key)
   });
   clazz.__mdlzr__.attrTypes[ key ] = descriptor;
+
 }

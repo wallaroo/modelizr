@@ -1,6 +1,16 @@
 import property from "../src/decorators/property"
 import id from "../src/decorators/id"
-import { fetch, getAttrTypes, getChanges, getCid, getId, observeChanges } from '../src/utils';
+import {
+  Entity, EntityClass,
+  fetch, getAttributes,
+  getAttrTypes,
+  getChanges,
+  getCid,
+  getId,
+  getMdlzrInstance,
+  initEntity, MaybeEntityClass,
+  observeChanges
+} from '../src/utils';
 import FirestoreOrm from "../src/drivers/FirestoreOrm";
 import * as firebase from "firebase/app";
 import "firebase/auth"
@@ -8,6 +18,7 @@ import "firebase/firestore"
 
 const pick = require("lodash.pick");
 import Collection from "../src/Collection";
+import { IFieldObject } from '../src/IFieldObject';
 //
 // // Initialize Firebase
 const config = {
@@ -40,23 +51,28 @@ beforeEach(async () => {
   return batch.commit()
 });
 
-class ChildModel {
-  @id
-  @property()
-  id: number;
-
-  @property()
-  foo: string = "bar";
-}
-
-class TestModel {
-  constructor(obj?: {[key in keyof TestModel]?: TestModel[key]}) {
-    Object.assign(this, obj);
+class BaseClass<T extends object> {
+  static create<T extends object>(this: MaybeEntityClass<T>, obj?: IFieldObject<T>):Entity<T> {
+    let res = new this();
+    console.log("beforefetch", getMdlzrInstance(res), obj);
+    if (obj) {
+      res = fetch(res, obj);
+      console.log("afterfetch", getMdlzrInstance(res));
+    }
+    return res
   }
 
   @id
   @property()
   id: number;
+}
+
+class ChildModel extends BaseClass<ChildModel> {
+  @property()
+  foo: string = "bar";
+}
+
+class TestModel extends BaseClass<TestModel> {
 
   @property()
   property: string = "default";
@@ -70,6 +86,12 @@ class TestModel {
 
 test("model type", () => {
   expect(getAttrTypes(TestModel)[ "property" ]).toBeTruthy();
+  const testModel = TestModel.create({property:"test"});
+  expect(testModel).toBeInstanceOf(TestModel);
+  expect(getMdlzrInstance(testModel)).toBeTruthy();
+  expect(testModel.property).toBe("test")
+  // const testModel2 = new TestModel();
+  // expect(getMdlzrInstance(testModel2)).toBeTruthy();
 });
 
 test("model save", async () => {
@@ -141,10 +163,10 @@ test("childmodel", async () => {
   parent = await orm.save(parent);
   const childaftersave = parent.child;
   expect(childaftersave).toBeTruthy();
-  expect(parent.childs[0]).toBeTruthy();
-  expect(parent.childs[0]).toBeInstanceOf(ChildModel);
-  expect(parent.childs[0].id).toBeTruthy();
-  expect(parent.childs[1].id).toBeTruthy();
+  expect(parent.childs[ 0 ]).toBeTruthy();
+  expect(parent.childs[ 0 ]).toBeInstanceOf(ChildModel);
+  expect(parent.childs[ 0 ].id).toBeTruthy();
+  expect(parent.childs[ 1 ].id).toBeTruthy();
   expect((childaftersave as ChildModel).foo).toBe("barzotto");
 });
 
@@ -164,7 +186,7 @@ test("collection", async () => {
   const collection = new Collection(TestModel, {name: "testCollection", keyAttribute: "property"});
   const parent = new TestModel();
   parent.property = "thisisatest";
-  const parent2 = new TestModel({property: "thisisanothertest"});
+  const parent2 = TestModel.create({property: "thisisanothertest"});
   const saved11 = await collection.save(orm, parent) as TestModel;
   const saved21 = await orm.save(parent2);
   const saved12 = await collection.save(orm, saved11) as TestModel;
@@ -190,9 +212,10 @@ test("query", async done => {
   let res = await orm.find(TestModel).exec();
   expect(Array.isArray(res)).toBeTruthy();
   expect(res.length).toBe(0);
-  const models = [ {"property": "1one"}, {"property": "2two"}, {"property": "3three"} ].map((cur) => new TestModel(cur));
-  models[0].childs = [new ChildModel(), new ChildModel()];
+  const models = [ {"property": "1one"}, {"property": "2two"}, {"property": "3three"} ].map((cur) => TestModel.create(cur));
+  models[ 0 ].childs = [ new ChildModel(), new ChildModel() ];
   for (const cur of models) {
+    console.log("prop", cur.property);
     await orm.save(cur)
   }
   res = await orm
@@ -207,14 +230,14 @@ test("query", async done => {
   expect(res[ 0 ].property).toBe("1one");
   expect(res[ 1 ].property).toBe("2two");
   expect(res[ 2 ].property).toBe("3three");
-  expect(res[0].childs).toBeTruthy();
-  expect(res[0].childs).toBeInstanceOf(Array);
-  expect(res[0].childs[0]).toBeTruthy();
-  expect(res[0].childs[1]).toBeTruthy();
-  expect(res[0].childs[0]).toBeInstanceOf(ChildModel);
-  expect(res[0].childs[1]).toBeInstanceOf(ChildModel);
-  expect(res[0].childs[0].id).toBeTruthy();
-  expect(res[0].childs[1].id).toBeTruthy();
+  expect(res[ 0 ].childs).toBeTruthy();
+  expect(res[ 0 ].childs).toBeInstanceOf(Array);
+  expect(res[ 0 ].childs[ 0 ]).toBeTruthy();
+  expect(res[ 0 ].childs[ 1 ]).toBeTruthy();
+  expect(res[ 0 ].childs[ 0 ]).toBeInstanceOf(ChildModel);
+  expect(res[ 0 ].childs[ 1 ]).toBeInstanceOf(ChildModel);
+  expect(res[ 0 ].childs[ 0 ].id).toBeTruthy();
+  expect(res[ 0 ].childs[ 1 ].id).toBeTruthy();
   const query = orm
     .find(TestModel)
     .where("property=='field'")

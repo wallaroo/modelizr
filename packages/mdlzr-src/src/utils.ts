@@ -94,13 +94,15 @@ export function getCollection<T extends object>(clazz: MaybeEntityClass<T>): Col
 }
 
 export function initEntityClass<T extends object>(entity: EntityClass<T>): void {
-  if (!entity.__mdlzr__) {
+  if (!entity.hasOwnProperty("__mdlzr__")) {
+    let parent = entity.__mdlzr__ || {attrTypes:{}, idAttribute:null};
     Object.defineProperty(entity, "__mdlzr__", {
       enumerable: false,
       writable: false,
       value: {
         name: entity.name,
-        attrTypes: {}
+        attrTypes: {...parent.attrTypes},
+        idAttribute: parent.idAttribute
       } as MdlzrDescriptor<T>
     });
   }
@@ -174,6 +176,10 @@ export function getMdlzrDescriptor<T extends object>(model: EntityClass<T> | Ent
 }
 
 export function clone<T extends object>(model: Entity<T>): Entity<T> {
+  if(!isEntity(model)){
+    throw new Error(`model is not an entity but ${model}`)
+  }
+
   let clone: Entity<T> = new (model.constructor)();
   Object.assign(clone.__mdlzr__, model.__mdlzr__);
   return clone;
@@ -203,21 +209,24 @@ export function resolveAttributes<T extends object>(clazz: EntityClass<T>, setHa
   return setHash;
 }
 
-export function fetch<T extends object>(model: Entity<T>, setHash: IFieldObject<T>): Entity<T> {
-  const mdlzr = getMdlzrInstance(model);
+export function fetch<T extends object>(model: Entity<T>, setHash?: IFieldObject<T>): Entity<T> {
+  let res = model;
+  if (!setHash){
+    const resMdlzr = getMdlzrInstance(res);
+    Object.assign(resMdlzr.attributes, resMdlzr.changes);
+    resMdlzr.changes = {};
+    return res;
+  }
   setHash = resolveAttributes(model.constructor, setHash);
   const changes = objectDif(getAttributes(model), setHash);
-  let res = model;
+
   if (changes) {
     handleChanges(model, getAttributes(model), changes);
     res = clone(model);
     const resMdlzr = getMdlzrInstance(res);
     Object.assign(resMdlzr.attributes, changes);
     resMdlzr.changes = omit(resMdlzr.changes, Object.keys(changes))
-  } else {
-    const resMdlzr = getMdlzrInstance(res);
-    Object.assign(resMdlzr.attributes, resMdlzr.changes);
-    resMdlzr.changes = {};
+    console.log("changes", changes, resMdlzr)
   }
   return res;
 }
