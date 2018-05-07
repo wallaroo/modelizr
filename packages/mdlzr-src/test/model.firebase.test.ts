@@ -38,6 +38,7 @@ beforeEach(async () => {
   const collection = await db.collection("testmodels").get();
   const collection2 = await db.collection("testCollection").get();
   const collection3 = await db.collection("childmodels").get();
+  const collection4 = await db.collection("baseclasses").get();
   const batch = db.batch();
   collection.forEach((cur) => {
     batch.delete(cur.ref)
@@ -48,22 +49,27 @@ beforeEach(async () => {
   collection3.forEach((cur) => {
     batch.delete(cur.ref)
   });
+  collection4.forEach((cur) => {
+    batch.delete(cur.ref)
+  });
   return batch.commit()
 });
 
-class BaseClass{
-  constructor(obj? : IFieldObject<BaseClass>){
-    initEntity(this);
+class BaseClass {
+  constructor(obj?: IFieldObject<BaseClass>) {
     Object.assign(this, obj)
   }
 
   @id
   @property()
-  id: number;
+  id: number = 0;
+
+  @property()
+  description: string;
 }
 
-class ChildModel extends BaseClass{
-  constructor(obj?: IFieldObject<ChildModel>){
+class ChildModel extends BaseClass {
+  constructor(obj?: IFieldObject<ChildModel>) {
     super(obj);
     Object.assign(this, obj)
   }
@@ -75,11 +81,12 @@ class ChildModel extends BaseClass{
   childs: BaseClass[];
 }
 
-class TestModel extends BaseClass{
-  constructor(obj?: IFieldObject<TestModel>){
+class TestModel extends BaseClass {
+  constructor(obj?: IFieldObject<TestModel>) {
     super(obj);
     Object.assign(this, obj)
   }
+
   @property()
   property: string = "default";
 
@@ -92,7 +99,7 @@ class TestModel extends BaseClass{
 
 test("model type", () => {
   expect(getAttrTypes(TestModel)[ "property" ]).toBeTruthy();
-  const testModel = new TestModel({property:"test"});
+  const testModel = new TestModel({property: "test"});
   expect(testModel).toBeInstanceOf(TestModel);
   expect(getMdlzrInstance(testModel)).toBeTruthy();
   expect(testModel.property).toBe("test")
@@ -112,6 +119,20 @@ test("model save", async () => {
   expect(getChanges(model)).toBeTruthy();
   model = await orm.save(model);
   expect(getChanges(model)).toBeNull();
+  return true;
+});
+
+
+test("model save composed", async () => {
+  let model = new TestModel();
+  model.child = new ChildModel();
+  model.child.childs = [new BaseClass({description: 'descr'})];
+  await orm.save(model);
+  expect(model.id).toBeTruthy();
+  expect(model.child.id).toBeTruthy();
+  expect(model.child.childs[0].id).toBeTruthy();
+  const doc = await db.collection('childmodels').doc(`${model.child.id}`).get();
+  expect(doc.get("childs")[0].id).toBe(model.child.childs[0].id);
   return true;
 });
 
@@ -219,13 +240,13 @@ test("query", async done => {
   expect(Array.isArray(res)).toBeTruthy();
   expect(res.length).toBe(0);
   const models = [ {"property": "1one"}, {"property": "2two"}, {"property": "3three"} ].map((cur) => new TestModel(cur));
-  models[ 0 ].childs = [ new ChildModel({childs:[new BaseClass()]}), new ChildModel() ];
+  models[ 0 ].childs = [ new ChildModel({childs: [ new BaseClass() ]}), new ChildModel() ];
   const saved = [];
   for (const cur of models) {
     saved.push(await orm.save(cur));
   }
-  expect(models[0].childs[0].id).toBeTruthy();
-  expect(models[0].childs[0].childs[0].id).toBeTruthy();
+  expect(models[ 0 ].childs[ 0 ].id).toBeTruthy();
+  expect(models[ 0 ].childs[ 0 ].childs[ 0 ].id).toBeTruthy();
   res = await orm
     .find(TestModel)
     .where("property=='field'")

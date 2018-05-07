@@ -181,6 +181,7 @@ export function clone<T extends object>(model: Entity<T>): Entity<T> {
   }
 
   let clone: Entity<T> = new (model.constructor)();
+  initEntity(clone);
   Object.assign(clone.__mdlzr__, model.__mdlzr__);
   return clone;
 }
@@ -200,6 +201,7 @@ export function observeChanges<T extends object>(model: Entity<T>, handler: (mod
 }
 
 export function getAttributes<T extends object>(model: Entity<T>): IFieldObject<T> {
+  initEntity(model);
   const mdlzr = getMdlzrInstance(model);
   return Object.assign({}, mdlzr.attributes, mdlzr.changes) as IFieldObject<T>;
 }
@@ -210,6 +212,7 @@ export function resolveAttributes<T extends object>(clazz: EntityClass<T>, setHa
 }
 
 export function fetch<T extends object>(model: Entity<T>, setHash?: IFieldObject<T>): Entity<T> {
+  initEntity(model);
   let res = model;
   if (!setHash){
     const resMdlzr = getMdlzrInstance(res);
@@ -225,7 +228,9 @@ export function fetch<T extends object>(model: Entity<T>, setHash?: IFieldObject
     res = clone(model);
     const resMdlzr = getMdlzrInstance(res);
     Object.assign(resMdlzr.attributes, changes);
-    resMdlzr.changes = omit(resMdlzr.changes, Object.keys(changes))
+    for(const key of Object.keys(changes) as Array<keyof T>) {
+      delete resMdlzr.changes[ key ];
+    }
   }
   return res;
 }
