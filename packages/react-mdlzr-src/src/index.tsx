@@ -6,7 +6,7 @@ const pick = require("lodash.pick");
 export type PropsBinding<Props> = { [Key in keyof Props]: IObservable }
 export type PropsBinder<Props> = (props: Props) => PropsBinding<Props>
 
-export default function mdlzr<Props>(propsbinding: PropsBinder<Props> | PropsBinding<Props> | Array<keyof Props>): (cmp: ComponentType<Props>) => ComponentType<Props> {
+export default function mdlzr<Props>(propsbinding: PropsBinder<Props> | PropsBinding<Props> | Array<string>): (cmp: ComponentType<Props>) => ComponentType<Props> {
   return function (InputComponent: ComponentType<Props>): ComponentType<Props> {
     return class Mdlzr extends Component<Props> {
       static displayName = `Mdlzr(${InputComponent.displayName || InputComponent.name})`;

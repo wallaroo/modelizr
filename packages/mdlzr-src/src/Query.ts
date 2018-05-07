@@ -2,7 +2,7 @@ import { OrmDriver } from "./OrmDriver";
 import { ISubscription } from "rxjs/Subscription"
 
 import Collection from "./Collection";
-import { EntityClass, getCollection, isEntityClass } from './utils';
+import { EntityClass, getCollection, isEntityClass, MaybeEntityClass } from './utils';
 import { IObservable } from './IObservable';
 
 const union = require("lodash.union");
@@ -25,7 +25,7 @@ export default class Query<T extends object> implements IObservable {
   _limit: number | null = null;
   private _whereClauses: WhereClause[] | null = null;
 
-  constructor(ormDriver: OrmDriver, model: EntityClass<T> | Collection<T>) {
+  constructor(ormDriver: OrmDriver, model: MaybeEntityClass<T> | Collection<T>) {
     this.ormDriver = ormDriver;
     if (isEntityClass<T>(model)) {
       this.model = model;

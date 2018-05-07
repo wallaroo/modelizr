@@ -3,7 +3,7 @@
   "compilerOptions": {
     "noImplicitAny" : true,
     "module": "commonjs",
-    "target": "esnext",
+    "target": "es2017",
     "declaration": true,
     "outDir": "../mdlzr-dist/",
     "lib": ["es7"],
