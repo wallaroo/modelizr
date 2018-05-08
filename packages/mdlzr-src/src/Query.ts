@@ -16,7 +16,7 @@ type WhereClause = {
 
 const whereRegexp = /^(\w*)\s?(==|>|<|>=|<=)\s?((['"]\w*['"])|(\d*))$/;
 
-export default class Query<T extends object> implements IObservable {
+export default class Query<T extends object> implements IObservable<T> {
   model: EntityClass<T>;
   collection: Collection<T>;
   ormDriver: OrmDriver;

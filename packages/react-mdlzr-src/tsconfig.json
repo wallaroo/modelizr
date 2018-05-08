@@ -9,7 +9,10 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "moduleResolution": "node",
-    "jsx": "react"
+    "jsx": "react",
+    "rootDir": "src",
+    "listFiles": false
   },
-  "include": ["src/**/*.ts","src/**/*.tsx"]
+  "include": ["src/*.tsx"],
+  "exclude": ["node_modules"]
 }

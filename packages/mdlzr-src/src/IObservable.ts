@@ -1,5 +1,6 @@
 import { ISubscription } from 'rxjs/Subscription';
+import { Entity } from './utils';
 
-export type IObservable = {
-  observe: (handler: (value: any) => void) => ISubscription
+export type IObservable<T extends object> = {
+  observe: (handler: (value: T[]) => void) => ISubscription
 }

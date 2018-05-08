@@ -88,14 +88,14 @@ export function getCollection<T extends object>(clazz: MaybeEntityClass<T>): Col
     }
     return clazz.__mdlzr__.collection;
   }
-  else{
-    throw new Error(`class ${clazz.name} isn't an Entity` );
+  else {
+    throw new Error(`class ${clazz.name} isn't an Entity`);
   }
 }
 
 export function initEntityClass<T extends object>(entity: EntityClass<T>): void {
   if (!entity.hasOwnProperty("__mdlzr__")) {
-    let parent = entity.__mdlzr__ || {attrTypes:{}, idAttribute:null};
+    let parent:any = entity.__mdlzr__ || {attrTypes: {}, idAttribute: null};
     Object.defineProperty(entity, "__mdlzr__", {
       enumerable: false,
       writable: false,
@@ -107,7 +107,7 @@ export function initEntityClass<T extends object>(entity: EntityClass<T>): void 
     });
   }
   if (!(entity.prototype as any)[ 'toJSON' ]) {
-    (entity.prototype as any)[ 'toJSON' ] = function(){
+    (entity.prototype as any)[ 'toJSON' ] = function () {
       let obj = Object.assign(this);
       let keys = Object.keys(obj).concat(Object.keys(this.constructor.prototype));
       return pick(obj, keys)
@@ -176,7 +176,7 @@ export function getMdlzrDescriptor<T extends object>(model: EntityClass<T> | Ent
 }
 
 export function clone<T extends object>(model: Entity<T>): Entity<T> {
-  if(!isEntity(model)){
+  if (!isEntity(model)) {
     throw new Error(`model is not an entity but ${model}`)
   }
 
@@ -214,7 +214,7 @@ export function resolveAttributes<T extends object>(clazz: EntityClass<T>, setHa
 export function fetch<T extends object>(model: Entity<T>, setHash?: IFieldObject<T>): Entity<T> {
   initEntity(model);
   let res = model;
-  if (!setHash){
+  if (!setHash) {
     const resMdlzr = getMdlzrInstance(res);
     Object.assign(resMdlzr.attributes, resMdlzr.changes);
     resMdlzr.changes = {};
@@ -228,7 +228,7 @@ export function fetch<T extends object>(model: Entity<T>, setHash?: IFieldObject
     res = clone(model);
     const resMdlzr = getMdlzrInstance(res);
     Object.assign(resMdlzr.attributes, changes);
-    for(const key of Object.keys(changes) as Array<keyof T>) {
+    for (const key of Object.keys(changes) as Array<keyof T>) {
       delete resMdlzr.changes[ key ];
     }
   }
