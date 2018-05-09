@@ -1,4 +1,4 @@
-import { Subscription } from 'rxjs/Subscription';
+import { ISubscription, Subscription } from 'rxjs/Subscription';
 import { Subject } from 'rxjs/Subject';
 import Collection from './Collection';
 import { Class } from './Classes';
@@ -21,6 +21,7 @@ export type MdlzrInstance<T, KEYS extends keyof T = keyof T> = {
   changes: { [key in KEYS]?: T[key] }
   subject: Subject<T>
   subscriptions: { [ cid: string ]: Subscription }
+  selfSubscription?:ISubscription
   cid: string
 }
 
