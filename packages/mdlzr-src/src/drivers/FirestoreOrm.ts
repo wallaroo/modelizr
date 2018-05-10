@@ -89,7 +89,7 @@ export default class FirestoreOrm extends SimpleOrm {
         const modelFetched = this.deserialize(model, {
           [ getIdAttribute(model) ]: doc.id,
           ...data
-        } as IFieldObject<T>).then((model)=>this.selfObserveModel(model));
+        } as IFieldObject<T>);
         promises.push(modelFetched);
       }
     );
