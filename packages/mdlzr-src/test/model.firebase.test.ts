@@ -12,7 +12,7 @@ import {
   observeChanges
 } from '../src/utils';
 import FirestoreOrm from "../src/drivers/FirestoreOrm";
-import * as firebase from "firebase/app";
+import * as firebase from 'firebase';
 import "firebase/auth"
 import "firebase/firestore"
 
@@ -126,13 +126,13 @@ test("model save", async () => {
 test("model save composed", async () => {
   let model = new TestModel();
   model.child = new ChildModel();
-  model.child.childs = [new BaseClass({description: 'descr'})];
+  model.child.childs = [ new BaseClass({description: 'descr'}) ];
   await orm.save(model);
   expect(model.id).toBeTruthy();
   expect(model.child.id).toBeTruthy();
-  expect(model.child.childs[0].id).toBeTruthy();
+  expect(model.child.childs[ 0 ].id).toBeTruthy();
   const doc = await db.collection('childmodels').doc(`${model.child.id}`).get();
-  expect(doc.get("childs")[0].id).toBe(model.child.childs[0].id);
+  expect(doc.get("childs")[ 0 ].id).toBe(model.child.childs[ 0 ].id);
   return true;
 });
 
@@ -153,6 +153,24 @@ test("onchange", async () => {
   model.property = "value2";
   expect(handler).toHaveBeenCalledTimes(1);
   expect.assertions(7)
+});
+
+test("onchange observe", async (done) => {
+  let model = new TestModel({property: "foo"});
+  let handler = jest.fn((model) => {
+    expect(model.property).toBe("pippo");
+    expect.assertions(4);
+    done();
+  }).mockImplementationOnce((model)=>{
+    expect(model.id).toBeTruthy();
+  });
+  let subscription = observeChanges(model, handler);
+  await orm.save(model);
+  expect(model.id).toBeTruthy();
+  let sameModelButOther = new TestModel({id: model.id, property: "pippo"});
+  expect(handler).toHaveBeenCalledTimes(1);
+  await orm.save(sameModelButOther);
+
 });
 
 // test("get", async () => {

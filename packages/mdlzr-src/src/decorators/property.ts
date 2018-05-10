@@ -7,7 +7,7 @@ import {
   getMdlzrInstance,
   clone,
   isEntity,
-  MdlzrInstance, getCid, haveSameCid
+  MdlzrInstance, getCid, haveSameCid, notifyObservers
 } from '../utils';
 import { IAttrType } from '../IAttrType';
 
@@ -28,9 +28,7 @@ function createSetter<T extends object, K extends keyof T = keyof T>(key: keyof 
     if (oldValue !== value) {
       handleChanges.call(this, mdlzr,key, oldValue, value);
       mdlzr.changes[ key ] = value;
-      if (mdlzr.subject.observers.length) {
-        mdlzr.subject.next(clone(this));
-      }
+      notifyObservers(this)
     }
   }
 }

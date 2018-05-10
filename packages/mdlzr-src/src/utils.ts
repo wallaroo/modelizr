@@ -62,6 +62,13 @@ export function objectDif<T1 extends object, T2 extends object>(obj1: T1, obj2: 
   }
 }
 
+export function notifyObservers<T extends object>(model: Entity<T>){
+  const mdlzr = getMdlzrInstance(model);
+  if (mdlzr.subject.observers.length) {
+    mdlzr.subject.next(clone(model));
+  }
+}
+
 export function isEmpty(obj: { [ key: string ]: any } | null) {
   return !obj || Object.keys(obj).length === 0
 }
@@ -232,6 +239,7 @@ export function fetch<T extends object>(model: Entity<T>, setHash?: IFieldObject
     for (const key of Object.keys(changes) as Array<keyof T>) {
       delete resMdlzr.changes[ key ];
     }
+    notifyObservers(res);
   }
   return res;
 }

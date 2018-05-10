@@ -24,7 +24,6 @@
     "@types/jest": "^22.2.3"
   },
   "dependencies": {
-    "@firebase/firestore-types": "^0.4.0",
     "@types/lodash.isempty": "^4.4.3",
     "@types/lodash.isplainobject": "^4.0.3",
     "@types/lodash.merge": "^4.6.3",

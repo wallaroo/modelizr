@@ -8,10 +8,10 @@ import {
   EntityClass,
   fetch,
   getAttributes,
-  getAttrTypes,
+  getAttrTypes, getCid,
   getCollection,
   getId,
-  getIdAttribute,
+  getIdAttribute, getMdlzrInstance,
   getRef,
   isEntity,
   isEntityClass, MaybeEntityClass
@@ -47,6 +47,24 @@ export default class FirestoreOrm extends SimpleOrm {
     }
   }
 
+  observeModel<T extends object>(model: Entity<T>,
+                                 handler: (h: T) => void = ()=>{}): ISubscription {
+    const collection = getCollection(model.constructor); // TODO maybe to put in arguments
+    let dbcollection = this._db.collection(collection.name);
+    let doc = dbcollection.doc(`${getId(model)}`);
+    return {
+      closed: false,
+      unsubscribe: doc.onSnapshot((snapshot) => {
+        const data = snapshot.data();
+        if (data) {
+          let res: T;
+          res = fetch(model, data as IFieldObject<T>);
+          handler(res);
+        }
+      })
+    }
+  }
+
   private applyQuery<T extends object>(collection: types.CollectionReference,
                                        query: Query<T>): types.Query {
     let result: types.Query = collection;
@@ -71,7 +89,7 @@ export default class FirestoreOrm extends SimpleOrm {
         const modelFetched = this.deserialize(model, {
           [ getIdAttribute(model) ]: doc.id,
           ...data
-        } as IFieldObject<T>);
+        } as IFieldObject<T>).then((model)=>this.selfObserveModel(model));
         promises.push(modelFetched);
       }
     );
@@ -155,10 +173,11 @@ export default class FirestoreOrm extends SimpleOrm {
 
   async transactionSave<T extends object>(model: Entity<T>,
                                           collection: Collection<T> = getCollection(model.constructor),
-                                          transaction: any): Promise<Entity<T>> {
+                                          transaction: any,
+                                          afterCommitTasks:Function[]): Promise<Entity<T>> {
     const childModels = this.getChildModels(model);
     for (const childModel of childModels) {
-      await this.transactionSave(childModel, getCollection(childModel.constructor), transaction)
+      await this.transactionSave(childModel, getCollection(childModel.constructor), transaction, afterCommitTasks)
     }
 
     const id = collection.getKey(model);
@@ -173,6 +192,19 @@ export default class FirestoreOrm extends SimpleOrm {
 
       await transaction.set(doc, isModelCollection ? attributes : getRef(model));
     }
+
+    afterCommitTasks.push(()=>{
+      this.selfObserveModel(model);
+    });
+
+    return model;
+  }
+
+  private selfObserveModel<T extends object>(model: Entity<T>): Entity<T>{
+    const mdlz = getMdlzrInstance(model);
+    if(!mdlz.selfSubscription){
+      mdlz.selfSubscription = this.observeModel(model);
+    }
     return model;
   }
 
@@ -181,11 +213,15 @@ export default class FirestoreOrm extends SimpleOrm {
    */
   async save<T extends object>(model: Entity<T>,
                                collection: Collection<T> = getCollection(model.constructor)): Promise<T> {
-
+    const afterCommitTasks:Function[] = [];
     await this._db.runTransaction(async (transaction) => {
 
-      model = await this.transactionSave(model, collection, transaction)
+      model = await this.transactionSave(model, collection, transaction, afterCommitTasks)
     });
+
+    for (const f of afterCommitTasks){
+      f();
+    }
     return super.save(model);
   }
 
@@ -223,6 +259,7 @@ export default class FirestoreOrm extends SimpleOrm {
         // res.cid = new Cid();
       }
       res = fetch(res, data);
+      this.selfObserveModel(res);
     } else {
       res = null;
     }
