@@ -1,4 +1,4 @@
-import { OrmDriver } from "../OrmDriver";
+import { FetchOptions, OrmDriver } from "../OrmDriver";
 import {
   Entity,
   EntityClass,
@@ -28,10 +28,10 @@ export default class SimpleOrm implements OrmDriver {
   _lastId: number = 0;
   _store: {
     "byCid": {
-      [cid: string]: Entity<any>
+      [ cid: string ]: Entity<any>
     },
     "byId": {
-      [model: string]: { [id: string]: string }
+      [ model: string ]: { [ id: string ]: string }
     }
   } = {
     byCid: {},
@@ -50,8 +50,13 @@ export default class SimpleOrm implements OrmDriver {
    * gets the model by its id or null if doesn't exists
    */
   async getModelById<T extends object>(model: MaybeEntityClass<T>,
-                                      id: string | number,
-                                      collection: Collection<T> = getCollection(model)): Promise<T | null> {
+                                       id: string | number,
+                                       options?: FetchOptions<T>
+  ): Promise<T | null> {
+    // const {collection, load} = Object.assign({
+    //   collection: getCollection(model),
+    //   load: {}
+    // }, options);
     let res = null;
     const cid = this.getCidById(model, id);
     if (cid) {
@@ -64,28 +69,28 @@ export default class SimpleOrm implements OrmDriver {
    * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
    */
   getModelByCid<T extends object>(cid: string): Entity<T> | null {
-    return this._store.byCid[`${cid}`];
+    return this._store.byCid[ `${cid}` ];
   }
 
   getCidById<T extends object>(model: MaybeEntityClass<T>, id: string | number): string | null {
-    const storeItem = this._store.byId[getCollection(model).name];
-    return storeItem ? storeItem[`${id}`] : null;
+    const storeItem = this._store.byId[ getCollection(model).name ];
+    return storeItem ? storeItem[ `${id}` ] : null;
   }
 
   /**
    * Upserts the model in the ORM
    */
   async save<T extends object>(model: Entity<T>, collection: Collection<T> = getCollection(model.constructor)): Promise<T> {
-    let modelId:any = collection.getKey(model);
+    let modelId: any = collection.getKey(model);
     if (!modelId) {
       modelId = this._lastId++;
       model = collection.setKey(model, `${modelId}`);
     }
     model = fetch(model);
-    if (!this._store.byId[collection.name])
-      this._store.byId[collection.name] = {};
-    this._store.byId[collection.name][modelId] = getCid(model);
-    this._store.byCid[getCid(model)] = model;
+    if (!this._store.byId[ collection.name ])
+      this._store.byId[ collection.name ] = {};
+    this._store.byId[ collection.name ][ modelId ] = getCid(model);
+    this._store.byCid[ getCid(model) ] = model;
     return model;
   }
 
@@ -95,9 +100,9 @@ export default class SimpleOrm implements OrmDriver {
   async delete<T extends object>(model: Entity<T>, collection: Collection<T> = getCollection(model.constructor)): Promise<void> {
     const id = getId(model);
     if (id !== null) {
-      delete this._store.byId[collection.name][`${id}`];
+      delete this._store.byId[ collection.name ][ `${id}` ];
     }
-    delete this._store.byCid[getCid(model)];
+    delete this._store.byCid[ getCid(model) ];
 
   }
 
@@ -109,10 +114,10 @@ export default class SimpleOrm implements OrmDriver {
     throw "implement me"
   }
 
-  find<T extends object>(model: MaybeEntityClass<T>):Query<T>{
+  find<T extends object>(model: MaybeEntityClass<T>): Query<T> {
     if (isEntityClass<T>(model)) {
       return new Query<T>(this, model);
-    }else{
+    } else {
       throw new Error(`class ${model.name} isn't an Entity`)
     }
   }

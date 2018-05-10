@@ -73,8 +73,8 @@ export function isEmpty(obj: { [ key: string ]: any } | null) {
   return !obj || Object.keys(obj).length === 0
 }
 
-export function getAttrTypes<T extends object>(entity: Class<T>): IAttrTypes {
-  return getMdlzrDescriptor(entity).attrTypes;
+export function getAttrTypes<T extends object>(model: MaybeEntityClass<T> | Entity<T>): IAttrTypes {
+  return getMdlzrDescriptor(model).attrTypes;
 }
 
 export function getIdAttribute<T extends object>(entity: Entity<T> | EntityClass<T>): keyof T {

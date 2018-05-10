@@ -3,6 +3,15 @@ import Collection from "./Collection";
 import { ISubscription } from "rxjs/Subscription"
 import { Class } from './Classes';
 
+export type FetchOption<T> = {
+  [K in keyof T]?: boolean | FetchOption<T[K]>
+}
+
+export type FetchOptions<T extends object> = {
+  collection?: Collection<T>,
+  load?: FetchOption<T>
+}
+
 export interface OrmDriver {
   /**
    * Upserts the model in the ORM
@@ -17,7 +26,7 @@ export interface OrmDriver {
   /**
    * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
    */
-  getModelById<T extends object>(model: Class<T>, id: string | number, collection?: Collection<T>): Promise<T | null>;
+  getModelById<T extends object>(model: Class<T>, id: string | number, options?: FetchOptions<T>): Promise<T | null>;
 
   // /**
   //  * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise

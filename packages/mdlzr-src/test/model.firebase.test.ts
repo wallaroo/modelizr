@@ -1,24 +1,14 @@
 import property from "../src/decorators/property"
 import id from "../src/decorators/id"
-import {
-  Entity, EntityClass,
-  fetch, getAttributes,
-  getAttrTypes,
-  getChanges,
-  getCid,
-  getId,
-  getMdlzrInstance,
-  initEntity, MaybeEntityClass,
-  observeChanges
-} from '../src/utils';
+import { fetch, getAttrTypes, getChanges, getCid, getId, getMdlzrInstance, observeChanges } from '../src/utils';
 import FirestoreOrm from "../src/drivers/FirestoreOrm";
 import * as firebase from 'firebase';
 import "firebase/auth"
 import "firebase/firestore"
-
-const pick = require("lodash.pick");
 import Collection from "../src/Collection";
 import { IFieldObject } from '../src/IFieldObject';
+
+const pick = require("lodash.pick");
 //
 // // Initialize Firebase
 const config = {
@@ -93,7 +83,7 @@ class TestModel extends BaseClass {
   @property()
   child: ChildModel | null;
 
-  @property({itemType: ChildModel})
+  @property({itemType: ChildModel, embedded: true})
   childs: ChildModel[];
 }
 
@@ -161,7 +151,7 @@ test("onchange observe", async (done) => {
     expect(model.property).toBe("pippo");
     expect.assertions(4);
     done();
-  }).mockImplementationOnce((model)=>{
+  }).mockImplementationOnce((model) => {
     expect(model.id).toBeTruthy();
   });
   let subscription = observeChanges(model, handler);
