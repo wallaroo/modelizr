@@ -7,7 +7,7 @@ import {
   getMdlzrInstance,
   clone,
   isEntity,
-  MdlzrInstance, getCid, haveSameCid, notifyObservers
+  MdlzrInstance, getCid, haveSameCid, notifyObservers, isEntityClass
 } from '../utils';
 import { IAttrType } from '../IAttrType';
 
@@ -79,5 +79,7 @@ export default (descriptor: IAttrType = {}) => function property<T extends objec
     set: createSetter(key)
   });
   clazz.__mdlzr__.attrTypes[ key ] = descriptor;
-
+  if(isEntityClass(descriptor.type) || isEntityClass(descriptor.itemType)){
+    clazz.__mdlzr__.childFields.push(key)
+  }
 }

@@ -2,7 +2,7 @@ import property from "../src/decorators/property"
 import id from "../src/decorators/id"
 import { fetch, getAttrTypes, getChanges, getCid, getId, getMdlzrInstance, observeChanges } from '../src/utils';
 import FirestoreOrm from "../src/drivers/FirestoreOrm";
-import * as firebase from 'firebase';
+import * as firebase from 'firebase/app';
 import "firebase/auth"
 import "firebase/firestore"
 import Collection from "../src/Collection";

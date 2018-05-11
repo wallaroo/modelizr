@@ -3,6 +3,7 @@ import Query from "../Query";
 import Collection from "../Collection";
 import { ISubscription } from "rxjs/Subscription"
 import * as types from "@firebase/firestore-types";
+const omit = require('lodash.omit');
 import {
   Entity,
   EntityClass,
@@ -11,7 +12,7 @@ import {
   getAttrTypes,
   getCollection,
   getId,
-  getIdAttribute,
+  getIdAttribute, getMdlzrDescriptor,
   getMdlzrInstance,
   getRef,
   isEntity,
@@ -54,15 +55,18 @@ export default class FirestoreOrm extends SimpleOrm {
                                  handler: (h: T) => void = () => {
                                  }): ISubscription {
     const collection = getCollection(model.constructor); // TODO maybe to put in arguments
+    const descr = getMdlzrDescriptor(model.constructor);
     let dbcollection = this._db.collection(collection.name);
     let doc = dbcollection.doc(`${getId(model)}`);
     return {
       closed: false,
       unsubscribe: doc.onSnapshot((snapshot) => {
-        const data = snapshot.data();
+        let data = snapshot.data() as IFieldObject<T>;
         if (data) {
           let res: T;
-          res = fetch(model, data as IFieldObject<T>);
+          // avoid to fetch child models, i'm expecting these are already observed
+          data = omit(data, ...descr.childFields);
+          res = fetch(model, data);
           handler(res);
         }
       })

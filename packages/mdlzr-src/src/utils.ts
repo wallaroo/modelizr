@@ -11,9 +11,10 @@ let cid = 1;
 
 export type MdlzrDescriptor<T extends object> = {
   idAttribute: keyof T
-  collection: Collection<T>
+  collection?: Collection<T>
   name: string,
-  attrTypes: IAttrTypes
+  attrTypes: IAttrTypes,
+  childFields: Array<keyof T>
 }
 
 export type MdlzrInstance<T, KEYS extends keyof T = keyof T> = {
@@ -110,7 +111,8 @@ export function initEntityClass<T extends object>(entity: EntityClass<T>): void 
       value: {
         name: entity.name,
         attrTypes: {...parent.attrTypes},
-        idAttribute: parent.idAttribute
+        idAttribute: parent.idAttribute,
+        childFields: []
       } as MdlzrDescriptor<T>
     });
   }
