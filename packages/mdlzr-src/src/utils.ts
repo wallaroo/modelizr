@@ -22,7 +22,7 @@ export type MdlzrInstance<T, KEYS extends keyof T = keyof T> = {
   changes: { [key in KEYS]?: T[key] }
   subject: Subject<T>
   subscriptions: { [ cid: string ]: Subscription }
-  selfSubscription?:ISubscription
+  selfSubscription?: ISubscription
   cid: string
 }
 
@@ -63,11 +63,15 @@ export function objectDif<T1 extends object, T2 extends object>(obj1: T1, obj2: 
   }
 }
 
-export function notifyObservers<T extends object>(model: Entity<T>){
+export function notifyObservers<T extends object>(model: Entity<T>) {
   const mdlzr = getMdlzrInstance(model);
   if (mdlzr.subject.observers.length) {
     mdlzr.subject.next(clone(model));
   }
+}
+
+export function getClassName<T extends { name: string, displayName?: string }>(t: T) {
+  return t.displayName || t.name;
 }
 
 export function isEmpty(obj: { [ key: string ]: any } | null) {
@@ -104,7 +108,7 @@ export function getCollection<T extends object>(clazz: MaybeEntityClass<T>): Col
 
 export function initEntityClass<T extends object>(entity: EntityClass<T>): void {
   if (!entity.hasOwnProperty("__mdlzr__")) {
-    let parent:any = entity.__mdlzr__ || {attrTypes: {}, idAttribute: null};
+    let parent: any = entity.__mdlzr__ || {attrTypes: {}, idAttribute: null};
     Object.defineProperty(entity, "__mdlzr__", {
       enumerable: false,
       writable: false,

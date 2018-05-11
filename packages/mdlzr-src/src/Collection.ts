@@ -1,6 +1,6 @@
 import Query from "./Query";
 import { OrmDriver } from "./OrmDriver";
-import { Entity, EntityClass, fetch, getIdAttribute, isEntityClass, MaybeEntityClass } from './utils';
+import { Entity, EntityClass, fetch, getClassName, getIdAttribute, isEntityClass, MaybeEntityClass } from './utils';
 
 const pluralize = require("pluralize");
 
@@ -21,7 +21,7 @@ class Collection<T extends object> {
       if (name)
         this.name = name;
       else
-        this.name = pluralize(model.name.toLowerCase());
+        this.name = pluralize(getClassName(model).toLowerCase());
 
       if (keyAttribute) {
         this.keyAttribute = keyAttribute;
@@ -30,7 +30,7 @@ class Collection<T extends object> {
       }
     }
     else {
-      throw new Error(`class ${model.name} isn't an Entity`)
+      throw new Error(`class ${getClassName(model)} isn't an Entity`)
     }
   }
 
@@ -41,7 +41,7 @@ class Collection<T extends object> {
   getKey(model: Entity<T>) {
     const res = model[ this.keyAttribute ];
     if (res !== undefined && res !== null && typeof res !== "number" && typeof res !== "string")
-      throw new Error(`invalid key ${this.keyAttribute} of type ${typeof res} for model ${model.constructor.name}`);
+      throw new Error(`invalid key ${this.keyAttribute} of type ${typeof res} for model ${getClassName(model.constructor)}`);
     return res;
   }
 
