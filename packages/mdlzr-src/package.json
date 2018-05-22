@@ -1,6 +1,6 @@
 {
   "name": "mdlzr-src",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "private": true,
   "main": "src/index.js",
   "author": "wallaroo",
@@ -10,6 +10,7 @@
     "prepare": "tsc --pretty"
   },
   "devDependencies": {
+    "@types/jest": "^22.2.3",
     "babel-cli": "^6.26.0",
     "babel-jest": "^21.2.0",
     "babel-plugin-transform-class-properties": "^6.24.1",
@@ -20,29 +21,28 @@
     "babel-preset-flow": "^6.23.0",
     "firebase": "^5.0.2",
     "jest": "^22.4.3",
-    "typescript": "^2.8.3",
-    "@types/jest": "^22.2.3"
+    "typescript": "^2.8.3"
   },
   "dependencies": {
     "@types/lodash.isempty": "^4.4.3",
     "@types/lodash.isplainobject": "^4.0.3",
     "@types/lodash.merge": "^4.6.3",
-    "@types/lodash.pick": "^4.4.3",
     "@types/lodash.omit": "^4.5.3",
+    "@types/lodash.pick": "^4.4.3",
     "@types/lodash.union": "^4.6.3",
     "@types/node": "^9.4.6",
     "@types/pluralize": "0.0.28",
     "core-js": "^2.5.3",
+    "hoek": "^5.0.3",
     "lodash.isempty": "^4.4.0",
     "lodash.isplainobject": "^4.0.6",
     "lodash.merge": "^4.6.0",
-    "lodash.union": "^4.6.0",
-    "lodash.pick": "^4.4.0",
     "lodash.omit": "^4.5.0",
+    "lodash.pick": "^4.4.0",
+    "lodash.union": "^4.6.0",
     "pluralize": "^7.0.0",
     "reflect-metadata": "^0.1.10",
-    "rxjs": "^5.5.2",
-    "hoek": "^5.0.3"
+    "rxjs": "^5.5.2"
   },
   "jest": {
     "moduleFileExtensions": [

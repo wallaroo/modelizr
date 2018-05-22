@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+<a name="0.1.11"></a>
+## [0.1.11](https://github.com/wallaroo/modelizr/compare/v0.1.10...v0.1.11) (2018-05-22)
+
+
+### Bug Fixes
+
+* react-mdlzr minors ([e398143](https://github.com/wallaroo/modelizr/commit/e398143))
+* **typescript:** mdlzr-react typings ([e2257d0](https://github.com/wallaroo/modelizr/commit/e2257d0))
+
+
+
+
 <a name="0.1.10"></a>
 ## <small>0.1.10 (2018-03-07)</small>
 

@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+<a name="0.1.11"></a>
+## [0.1.11](https://github.com/wallaroo/modelizr/compare/v0.1.10...v0.1.11) (2018-05-22)
+
+
+### Bug Fixes
+
+* child recursive save ([0b5778c](https://github.com/wallaroo/modelizr/commit/0b5778c))
+* fetch changes removal issue in recursive save ([8703540](https://github.com/wallaroo/modelizr/commit/8703540))
+* minors ([d6b7587](https://github.com/wallaroo/modelizr/commit/d6b7587))
+* react-mdlzr minors ([e398143](https://github.com/wallaroo/modelizr/commit/e398143))
+* recursive lazy load configuration in getModelByID ([dd1bb60](https://github.com/wallaroo/modelizr/commit/dd1bb60))
+* recursive lazy load configuration in getModelByID ([e40b19a](https://github.com/wallaroo/modelizr/commit/e40b19a))
+* support for array of entity ([02f5ddf](https://github.com/wallaroo/modelizr/commit/02f5ddf))
+* update deps ([1ad9101](https://github.com/wallaroo/modelizr/commit/1ad9101))
+* use of displayName || name static property to construct collection names... ([930eaf3](https://github.com/wallaroo/modelizr/commit/930eaf3))
+* **FireStoreOrm:** observe models remotely on save/fetch ([d16d716](https://github.com/wallaroo/modelizr/commit/d16d716))
+* **FireStoreOrm:** removed self observation for queries ([e5df8e3](https://github.com/wallaroo/modelizr/commit/e5df8e3))
+
+
+
+
 <a name="0.1.10"></a>
 ## <small>0.1.10 (2018-03-07)</small>
 
