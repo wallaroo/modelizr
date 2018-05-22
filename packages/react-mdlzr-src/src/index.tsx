@@ -1,15 +1,39 @@
 import * as React from "react";
-import { ComponentType, Component, ComponentClass } from "react";
+import { ComponentType, Component, ComponentClass, ReactNode } from "react";
 import { IObservable, ISubscription } from "mdlzr";
 import { Entity, isEntity, observeChanges } from 'mdlzr/utils';
 
+export type Omit<T, K extends keyof T> = Pick<T, ({ [P in keyof T]: P } & { [P in K]: never } & { [ x: string ]: never, [ x: number ]: never })[keyof T]>;
+
 const pick = require("lodash.pick");
-export type PropsBinding<Props> = { [Key in keyof Props]?: IObservable<any> | Entity<any>}
-export type PropsBinder<Props> = (props: Props) => Promise<PropsBinding<Props>>
-export type MdlzrProps = { loading: boolean };
-export default function mdlzr<Props>(propsbinding: PropsBinder<Props> | PropsBinding<Props>): (cmp: ComponentType<Props>) => ComponentClass<Props> {
-  return function (InputComponent: ComponentType<Props & MdlzrProps>): ComponentClass<Props> {
-    return class Mdlzr extends Component<Props> {
+// export type PropsBinding<Props, K extends keyof Props = keyof Props> = { [Key in K]?: IObservable<any> | Entity<any>}
+// export type PropsBinder<Props, PB extends PropsBinding<Props>, KPB extends keyof Props = keyof Props> = (props: Props) => Promise<PB>
+// export type MdlzrProps = { loading: boolean, children?: ReactNode };
+
+export interface PropsBinder<TStateProps, TOwnProps> {
+  (ownProps: TOwnProps): TStateProps;
+}
+
+export type PropsBinderParam<TStateProps, TOwnProps> = PropsBinder<TStateProps, TOwnProps> | TStateProps;
+
+export type Shared<
+  InjectedProps,
+  DecorationTargetProps extends Shared<InjectedProps, DecorationTargetProps>
+  > = {
+  [P in Extract<keyof InjectedProps, keyof DecorationTargetProps>]?: DecorationTargetProps[P] extends InjectedProps[P] ? InjectedProps[P] : never;
+};
+
+export interface InferableComponentEnhancerWithProps<TInjectedProps, TNeedsProps> {
+  <P extends Shared<TInjectedProps, P>>(
+    component: ComponentType<P>
+  ): ComponentClass<Omit<P, keyof Shared<TInjectedProps, P>> & TNeedsProps> & {WrappedComponent: ComponentType<P>}
+}
+
+export type MdlzrProps = {loading: boolean};
+
+export default function mdlzr<TStateProps = {}, TOwnProps = {}>(propsbinding: PropsBinderParam<TStateProps, TOwnProps>): InferableComponentEnhancerWithProps<TStateProps & TOwnProps & MdlzrProps, TOwnProps> {
+  return (function (InputComponent: any){
+    return (class Mdlzr extends Component<any> {
       static displayName = `Mdlzr(${InputComponent.displayName || InputComponent.name})`;
       state: {
         loading: boolean,
@@ -19,9 +43,9 @@ export default function mdlzr<Props>(propsbinding: PropsBinder<Props> | PropsBin
 
       private loadingProps: string[] = [];
 
-      async getPropsBinding(props: Props): Promise<PropsBinding<Props>> {
+      async getPropsBinding(props: any): Promise<any> {
         if (typeof propsbinding === "function") {
-          return await propsbinding(props)
+          return await propsbinding(props as any)
         } else if (Array.isArray(propsbinding)) {
           return pick(props, propsbinding);
         } else {
@@ -59,14 +83,14 @@ export default function mdlzr<Props>(propsbinding: PropsBinder<Props> | PropsBin
         const propsBinding = await this.getPropsBinding(this.props);
         this.loadingProps = Object.keys(propsBinding);
         for (const propName of this.loadingProps) {
-          this._subscribe(propName, propsBinding[ propName as keyof Props ])
+          this._subscribe(propName, propsBinding[ propName])
         }
       }
 
-      async componentWillReceiveProps(nextProps: Props) {
+      async componentWillReceiveProps(nextProps: any) {
         const propsBinding = await this.getPropsBinding(this.props);
         const nxtProps = await this.getPropsBinding(nextProps);
-        for (const propName of (Object.keys(propsBinding) as Array<keyof Props>)) {
+        for (const propName of (Object.keys(propsBinding))) {
           if ((this.props as any)[ propName ] !== nxtProps[ propName ]) {
             this._subscriptions[ propName ] && this._subscriptions[ propName ].unsubscribe();
             this._subscribe(propName, propsBinding[ propName ]);
@@ -83,6 +107,6 @@ export default function mdlzr<Props>(propsbinding: PropsBinder<Props> | PropsBin
       render() {
         return <InputComponent {...this.props} {...this.state}/>
       }
-    }
-  }
+    }) as any;
+  }) as InferableComponentEnhancerWithProps<TStateProps & TOwnProps & MdlzrProps, TOwnProps>;
 }

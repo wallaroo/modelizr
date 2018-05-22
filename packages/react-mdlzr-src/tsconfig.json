@@ -11,7 +11,8 @@
     "moduleResolution": "node",
     "jsx": "react",
     "rootDir": "src",
-    "listFiles": false
+    "listFiles": false,
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src/*.tsx"],
   "exclude": ["node_modules"]
