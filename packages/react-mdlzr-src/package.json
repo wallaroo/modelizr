@@ -9,25 +9,24 @@
     "linkDeps": "npm link typescript react react-dom"
   },
   "devDependencies": {
-    "@types/react": "^16.4.6",
-    "@types/react-dom": "^16.0.6",
+    "@types/react": "^16.4.11",
+    "@types/react-dom": "^16.0.7",
     "jest": "^22.4.3",
     "mdlzr": "^0.1.12",
-    "react": "^16.4.1",
-    "react-dom": "^16.4.1",
-    "typescript": "^2.8.3",
-    "utility-types": "^2.0.0"
+    "react": "^16.4.2",
+    "react-dom": "^16.4.2"
   },
   "peerDependencies": {
     "mdlzr": "^0.1.10",
-    "react": "^16.3.2",
-    "react-dom": "^16.3.2"
+    "react": "^16.4.2",
+    "react-dom": "^16.4.2"
   },
   "dependencies": {
     "@types/firebase": "^3.2.1",
-    "@types/lodash.pick": "^4.4.3",
-    "@types/node": "^8.5.2",
-    "hoek": "^5.0.3",
-    "lodash.pick": "^4.4.0"
+    "@types/lodash.pick": "^4.4.4",
+    "@types/node": "^10.7.1",
+    "hoek": "^5.0.4",
+    "lodash.pick": "^4.4.0",
+    "utility-types": "^2.0.0"
   }
 }

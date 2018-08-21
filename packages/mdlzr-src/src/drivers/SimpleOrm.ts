@@ -1,28 +1,9 @@
 import { FetchOptions, OrmDriver } from "../OrmDriver";
-import {
-  Entity,
-  EntityClass,
-  fetch,
-  getAttributes,
-  getCid,
-  getCollection,
-  getId,
-  isEntityClass,
-  MaybeEntityClass
-} from "../utils";
+import { Entity, EntityClass, fetch, getCid, getCollection, getId, isEntityClass, MaybeEntityClass } from "../utils";
 
 import Query from "../Query";
 import Collection from "../Collection";
 import { ISubscription } from "rxjs/Subscription";
-import { IFieldObject } from '../IFieldObject';
-
-const merge = require("lodash.merge");
-
-export type StoreItem<T extends object> = {
-  model: Entity<T>,
-  attributes: IFieldObject<T>,
-  changes: IFieldObject<T> | null,
-}
 
 export default class SimpleOrm implements OrmDriver {
   _lastId: number = 0;
@@ -38,11 +19,10 @@ export default class SimpleOrm implements OrmDriver {
     byId: {}
   };
 
-  constructor(opts?: {
+  constructor(opts?: { // TODO why not an abstract class?
     executeQuery: <T extends object>(modelClass: EntityClass<T>, query: Query<T>) => Promise<T>,
     observeQuery: <T extends object>(modelClass: EntityClass<T>, query: Query<T>) => void
   }) {
-    //$FlowFixMe
     Object.assign(this, opts);
   }
 
@@ -53,10 +33,6 @@ export default class SimpleOrm implements OrmDriver {
                                        id: string | number,
                                        options?: FetchOptions<T>
   ): Promise<T | null> {
-    // const {collection, load} = Object.assign({
-    //   collection: getCollection(model),
-    //   load: {}
-    // }, options);
     let res = null;
     const cid = this.getCidById(model, id);
     if (cid) {

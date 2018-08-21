@@ -1,7 +1,6 @@
 import { ISubscription, Subscription } from 'rxjs/Subscription';
 import { Subject } from 'rxjs/Subject';
 import Collection from './Collection';
-import { Class } from './Classes';
 import { IAttrTypes } from './IAttrTypes';
 import { IFieldObject } from './IFieldObject';
 
@@ -13,7 +12,7 @@ export type MdlzrDescriptor<T extends object> = {
   idAttribute: keyof T
   collection?: Collection<T>
   name: string,
-  attrTypes: IAttrTypes,
+  attrTypes: IAttrTypes<T>,
   childFields: Array<keyof T>
 }
 
@@ -78,8 +77,8 @@ export function isEmpty(obj: { [ key: string ]: any } | null) {
   return !obj || Object.keys(obj).length === 0
 }
 
-export function getAttrTypes<T extends object>(model: MaybeEntityClass<T> | Entity<T>): IAttrTypes {
-  return getMdlzrDescriptor(model).attrTypes;
+export function getAttrTypes<T extends object>(model: MaybeEntityClass<T> | Entity<T>): IAttrTypes<T> {
+  return getMdlzrDescriptor<T>(model).attrTypes;
 }
 
 export function getIdAttribute<T extends object>(entity: Entity<T> | EntityClass<T>): keyof T {
@@ -178,14 +177,13 @@ export function getMdlzrInstance<T extends object>(model: Entity<T>): MdlzrInsta
   }
 }
 
-export function getMdlzrDescriptor<T extends object>(model: EntityClass<T> | Entity<T>): MdlzrDescriptor<T> {
+export function getMdlzrDescriptor<T extends object>(model: MaybeEntityClass<T> | Entity<T>): MdlzrDescriptor<T> {
   if (isEntityClass<T>(model)) {
     return model.__mdlzr__;
-  } else if (isEntity(model)) {
+  } else if (isEntity<T>(model)) {
     return model.constructor.__mdlzr__;
   } else {
     throw new Error(`model ${model.constructor.name} is not an entity`);
-
   }
 }
 

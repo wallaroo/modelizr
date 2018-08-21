@@ -1,3 +1,3 @@
 import { IAttrType } from './IAttrType';
 
-export interface IAttrTypes { [key: string]: IAttrType };
+export type IAttrTypes<T> = { [K in keyof T]: IAttrType };

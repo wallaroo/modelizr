@@ -51,7 +51,7 @@ function handleChanges<T extends object>(
 export default (descriptor: IAttrType = {}) => function property<T extends object>(this: any, target: T, key: keyof T): void {
   const clazz: EntityClass<T> = target.constructor as EntityClass<T>;
   initEntityClass(clazz);
-  const type = Reflect.getMetadata("design:type", target, key);
+  const type = Reflect.getMetadata("design:type", target, key as string);
   if (type !== Object) {
     switch (type) {
       case Number:
