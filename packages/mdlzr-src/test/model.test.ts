@@ -4,6 +4,7 @@ import "core-js/shim"
 import { getAttrTypes, getChanges, observeChanges } from '../src/utils';
 import SimpleOrm from '../src/drivers/SimpleOrm';
 import { OrmDriver } from '../src/OrmDriver';
+import { entity } from '../src/decorators/entity';
 
 const executeQuery = jest.fn(async (model, query) => {
   return [ {property: "one"}, {property: "two"}, {property: "three"} ].map((raw) => Object.assign(new model(), raw));
@@ -57,28 +58,28 @@ test("Model Class creation", () => {
 });
 
 test("Model onChange", () => {
-  let model = new TestModel();
+  let testModel = new TestModel();
   let handler = jest.fn(
-    (changedmodel) => {
-      expect(changedmodel.property).toBe("pippo");
-      expect(changedmodel).not.toBe(model);
+    ({model}) => {
+      expect(model.property).toBe("pippo");
+      expect(model).not.toBe(testModel);
     }
   );
   expect(handler).toHaveBeenCalledTimes(0);
-  let subscription = observeChanges(model, handler);
+  let subscription = observeChanges(testModel, handler);
   expect(handler).toHaveBeenCalledTimes(0);
   expect(subscription).toBeInstanceOf(Object);
-  model.property = "pippo";
+  testModel.property = "pippo";
   expect(handler).toHaveBeenCalledTimes(1);
   subscription.unsubscribe();
-  model.property = "value2";
+  testModel.property = "value2";
   expect(handler).toHaveBeenCalledTimes(1);
   expect.assertions(7)
 });
 
 test("childmodel", async () => {
-  const parentChangeHandler = jest.fn((model)=> expect(model).toBeInstanceOf(TestModel));
-  const childChangeHandler = jest.fn((model)=> expect(model).toBeInstanceOf(ChildModel));
+  const parentChangeHandler = jest.fn(({model})=> expect(model).toBeInstanceOf(TestModel));
+  const childChangeHandler = jest.fn(({model})=> expect(model).toBeInstanceOf(ChildModel));
   let parent = new TestModel();
   parent.child = new ChildModel();
   parent.child.foo = "barzotto";

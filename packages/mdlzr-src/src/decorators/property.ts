@@ -1,13 +1,16 @@
 import "reflect-metadata";
 import {
-  initEntityClass,
-  initEntity,
   Entity,
   EntityClass,
+  getCid,
   getMdlzrInstance,
-  clone,
+  haveSameCid,
+  initEntity,
+  initEntityClass,
   isEntity,
-  MdlzrInstance, getCid, haveSameCid, notifyObservers, isEntityClass
+  isEntityClass,
+  MdlzrInstance,
+  notifyObservers
 } from '../utils';
 import { IAttrType } from '../IAttrType';
 
@@ -26,15 +29,15 @@ function createSetter<T extends object, K extends keyof T = keyof T>(key: keyof 
     const mdlzr = getMdlzrInstance(this);
     const oldValue = mdlzr.changes[ key ] || mdlzr.attributes[ key ];
     if (oldValue !== value) {
-      handleChanges.call(this, mdlzr,key, oldValue, value);
+      handleChanges.call(this, mdlzr, key, oldValue, value);
       mdlzr.changes[ key ] = value;
-      notifyObservers(this)
+      notifyObservers(this as object, key, value, oldValue)
     }
   }
 }
 
 function handleChanges<T extends object>(
-  this:Entity<T>,
+  this: Entity<T>,
   mdlzr: MdlzrInstance<T>,
   key: keyof T,
   currentValue: any,
@@ -44,7 +47,7 @@ function handleChanges<T extends object>(
     mdlzr.subscriptions[ getCid(currentValue) ].unsubscribe();
   }
   if (isEntity(nextValue) && (!currentValue || !haveSameCid(currentValue, nextValue))) {
-    mdlzr.subscriptions[ getCid(nextValue) ] = getMdlzrInstance(nextValue).subject.subscribe((child:any)=>this[key]=child);
+    mdlzr.subscriptions[ getCid(nextValue) ] = getMdlzrInstance(nextValue).subject.subscribe(({model}: any) => this[ key ] = model);
   }
 }
 
@@ -79,7 +82,7 @@ export default (descriptor: IAttrType = {}) => function property<T extends objec
     set: createSetter(key)
   });
   clazz.__mdlzr__.attrTypes[ key ] = descriptor;
-  if(isEntityClass(descriptor.type) || isEntityClass(descriptor.itemType)){
+  if (isEntityClass(descriptor.type) || isEntityClass(descriptor.itemType)) {
     clazz.__mdlzr__.childFields.push(key)
   }
 }

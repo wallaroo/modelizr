@@ -16,10 +16,12 @@ export type MdlzrDescriptor<T extends object> = {
   childFields: Array<keyof T>
 }
 
+export type ChangeEvent<T, K extends keyof T = keyof T> = { model: T, attribute?: K, newValue?: T[K], oldValue?: T[K] }
+
 export type MdlzrInstance<T, KEYS extends keyof T = keyof T> = {
   attributes: { [key in KEYS]?: T[key] }
   changes: { [key in KEYS]?: T[key] }
-  subject: Subject<T>
+  subject: Subject<ChangeEvent<T>>
   subscriptions: { [ cid: string ]: Subscription }
   selfSubscription?: ISubscription
   cid: string
@@ -62,10 +64,10 @@ export function objectDif<T1 extends object, T2 extends object>(obj1: T1, obj2: 
   }
 }
 
-export function notifyObservers<T extends object>(model: Entity<T>) {
+export function notifyObservers<T extends object, K extends keyof T = keyof T>(model: Entity<T>, attribute?: K, newValue?: T[K], oldValue?: T[K]) {
   const mdlzr = getMdlzrInstance(model);
   if (mdlzr.subject.observers.length) {
-    mdlzr.subject.next(clone(model));
+    mdlzr.subject.next({model: clone(model), attribute, newValue, oldValue});
   }
 }
 
@@ -171,7 +173,7 @@ export function haveSameCid(modelA: Entity<any>, modelB: Entity<any>) {
 
 export function getMdlzrInstance<T extends object>(model: Entity<T>): MdlzrInstance<T> {
   if (!model.__mdlzr__) {
-    throw new Error(`model ${model.constructor.name} is not an entity`);
+    throw new Error(`model ${model.constructor.name} is not an entity: ${model}`);
   } else {
     return model.__mdlzr__;
   }
@@ -207,7 +209,7 @@ export function getChanges<T extends object>(model: Entity<T>): { [ key: string 
   }
 }
 
-export function observeChanges<T extends object>(model: Entity<T>, handler: (model: T) => void): Subscription {
+export function observeChanges<T extends object>(model: Entity<T>, handler: (event: ChangeEvent<T>) => void): Subscription {
   const mdlzr = getMdlzrInstance(model);
   return mdlzr.subject.subscribe(handler);
 }

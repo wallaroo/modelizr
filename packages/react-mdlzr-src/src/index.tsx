@@ -1,7 +1,7 @@
 import * as React from "react";
-import { ComponentType, Component, ComponentClass, ReactNode } from "react";
+import { Component, ComponentClass, ComponentType } from "react";
 import { IObservable, ISubscription } from "mdlzr";
-import { Entity, isEntity, observeChanges } from 'mdlzr/utils';
+import { ChangeEvent, Entity, isEntity, observeChanges } from 'mdlzr/utils';
 
 export type Omit<T, K extends keyof T> = Pick<T, ({ [P in keyof T]: P } & { [P in K]: never } & { [ x: string ]: never, [ x: number ]: never })[keyof T]>;
 
@@ -64,10 +64,10 @@ export default function mdlzr<TStateProps = {}, TOwnProps = {}>(propsbinding: Pr
       }
 
       private _subscribe(propName: string, propValue: IObservable<any> | Entity<any> | Array<Entity<any>>) {
-        const handler = (obj: any) => {
+        const handler = ({model}:ChangeEvent<any>) => {
           this.notifyLoaded(propName);
-          if (obj !== this.state[ propName ]) {
-            this.setState({[ propName ]: obj});
+          if (model !== this.state[ propName ]) {
+            this.setState({[ propName ]: model});
           }
         };
         if (isEntity(propValue)) {
