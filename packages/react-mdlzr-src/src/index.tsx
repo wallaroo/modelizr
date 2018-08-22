@@ -63,7 +63,7 @@ export default function mdlzr<TStateProps = {}, TOwnProps = {}>(propsbinding: Pr
         }
       }
 
-      private _subscribe(propName: string, propValue: IObservable<any> | Entity<any>) {
+      private _subscribe(propName: string, propValue: IObservable<any> | Entity<any> | Array<Entity<any>>) {
         const handler = (obj: any) => {
           this.notifyLoaded(propName);
           if (obj !== this.state[ propName ]) {

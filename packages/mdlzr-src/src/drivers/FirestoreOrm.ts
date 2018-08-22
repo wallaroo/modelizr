@@ -128,6 +128,7 @@ export default class FirestoreOrm extends SimpleOrm {
           attrValue = await this.getModelById(
             attrType.type,
             attrValue[ getIdAttribute(attrType.type) ],
+            getCollection(attrType.type),
             {load: typeof load[ attrName ] === "boolean" ? {} : load[ attrName ]});
         }
       }
@@ -149,7 +150,8 @@ export default class FirestoreOrm extends SimpleOrm {
               (cur: any) => this.getModelById(
                 attrType.itemType as EntityClass<any>,
                 cur[ getIdAttribute(attrType.itemType) ],
-                {load: (typeof load[ attrName ] === "boolean" ? {} : load[ attrName ] as FetchOption<any>)})));
+                getCollection(attrType.itemType as EntityClass<any>),
+                (typeof load[ attrName ] === "boolean" ? {} : load[ attrName ] as FetchOption<any>))));
         }
       }
       res[ attrName ] = attrValue;
@@ -259,13 +261,11 @@ export default class FirestoreOrm extends SimpleOrm {
     return super.save(model);
   }
 
-  async getModelById<T extends object>(model: MaybeEntityClass<T>,
+  async getModelById<T extends object>(modelClass: MaybeEntityClass<T>,
                                        id: string | number,
-                                       options?: FetchOptions<T>): Promise<T> {
-    const {collection, load} = Object.assign({
-      collection: getCollection(model),
-      load: {}
-    }, options);
+                                       collection: Collection<T> = getCollection(modelClass),
+                                       options?: FetchOption<T>): Promise<T> {
+    const load = options || {};
 
     const doc = await this._db
       .collection(collection.name)
@@ -277,22 +277,22 @@ export default class FirestoreOrm extends SimpleOrm {
     if (doc.exists) {
       let data: any = doc.data();
       // get the model from simple orm using the model id and not the collection key
-      const modelId = data[ getIdAttribute(model) ];
+      const modelId = data[ getIdAttribute(modelClass) ];
 
       if (modelId) {
-        if (collection !== getCollection(model)) {
+        if (collection !== getCollection(modelClass)) {
           const modelDoc = await this._db
-            .collection(getCollection(model).name)
+            .collection(getCollection(modelClass).name)
             .doc("" + modelId)
             .get();
           if (modelDoc.exists) {
             data = modelDoc.data();
           }
         }
-        res = await super.getModelById(model, modelId);
+        res = await super.getModelById(modelClass, modelId);
       }
 
-      res = await this.deserialize(res || model as EntityClass<T>, data, load);
+      res = await this.deserialize(res || modelClass as EntityClass<T>, data, load);
 
       this.selfObserveModel(res);
     } else {

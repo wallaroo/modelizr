@@ -1,4 +1,4 @@
-import { FetchOptions, OrmDriver } from "../OrmDriver";
+import { FetchOption, FetchOptions, OrmDriver } from "../OrmDriver";
 import { Entity, EntityClass, fetch, getCid, getCollection, getId, isEntityClass, MaybeEntityClass } from "../utils";
 
 import Query from "../Query";
@@ -29,12 +29,13 @@ export default class SimpleOrm implements OrmDriver {
   /**
    * gets the model by its id or null if doesn't exists
    */
-  async getModelById<T extends object>(model: MaybeEntityClass<T>,
+  async getModelById<T extends object>(modelClass: MaybeEntityClass<T>,
                                        id: string | number,
-                                       options?: FetchOptions<T>
+                                       collection: Collection<T> = getCollection(modelClass),
+                                       options?: FetchOption<T>
   ): Promise<T | null> {
     let res = null;
-    const cid = this.getCidById(model, id);
+    const cid = this.getCidById(modelClass, id);
     if (cid) {
       res = this.getModelByCid(cid);
     }

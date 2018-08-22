@@ -26,7 +26,7 @@ export interface OrmDriver {
   /**
    * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise
    */
-  getModelById<T extends object>(model: Class<T>, id: string | number, options?: FetchOptions<T>): Promise<T | null>;
+  getModelById<T extends object>(model: Class<T>, id: string | number, collection?: Collection<T>, option?: FetchOption<T>): Promise<T | null>;
 
   // /**
   //  * gets the cid of the model with the passed id if the relative model is already fetched, null otherwise

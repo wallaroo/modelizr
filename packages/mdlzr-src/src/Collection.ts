@@ -75,7 +75,7 @@ class Collection<T extends object> {
   }
 
   async findByKey(ormDriver: OrmDriver, key: string | number): Promise<T | null> {
-    return ormDriver.getModelById(this.model, key, {collection: this});
+    return ormDriver.getModelById(this.model, key, this);
   }
 
   getClass(): typeof Collection {
