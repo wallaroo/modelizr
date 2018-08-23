@@ -8,7 +8,7 @@ import "firebase/firestore"
 import Collection from "../src/Collection";
 import { IFieldObject } from '../src/IFieldObject';
 import { entity } from '../src/decorators/entity';
-import MdlzrSagaChannel from '../src/sagas/sagaChannel';
+import MdlzrReduxChannel from '../src/sagas/sagaChannel';
 
 const pick = require("lodash.pick");
 //
@@ -26,7 +26,7 @@ const db = firebase.firestore();
 db.settings({timestampsInSnapshots: true});
 const orm = new FirestoreOrm(db);
 beforeAll(()=>{
-  MdlzrSagaChannel.setStore();
+  MdlzrReduxChannel.setStore();
 });
 beforeEach(async () => {
   const collection = await db.collection("testmodels").get();
@@ -107,15 +107,15 @@ test("model type", () => {
 test("model save", async () => {
   let model = new TestModel();
   expect(getCid(model));
-  expect(MdlzrSagaChannel.singleton.getChanges(model)).toBeTruthy();
+  expect(MdlzrReduxChannel.singleton.getChanges(model)).toBeTruthy();
   expect(model.property).toBe("default");
   model.property = "value";
   expect(model.property).toBe("value");
 
   model.property = "1one";
-  expect(MdlzrSagaChannel.singleton.getChanges(model)).toBeTruthy();
+  expect(MdlzrReduxChannel.singleton.getChanges(model)).toBeTruthy();
   model = await orm.save(model);
-  expect(MdlzrSagaChannel.singleton.getChanges(model)).toBeNull();
+  expect(MdlzrReduxChannel.singleton.getChanges(model)).toBeNull();
   return true;
 });
 
@@ -139,7 +139,7 @@ test("onchange", async () => {
   let handler = jest.fn(({model}) => expect(model.property).toBe("pippo"));
   model.property = "pluto";
   expect(handler).toHaveBeenCalledTimes(0);
-  let subscription = MdlzrSagaChannel.singleton.observeChanges(model, handler);
+  let subscription = MdlzrReduxChannel.singleton.observeChanges(model, handler);
   expect(handler).toHaveBeenCalledTimes(0);
   expect(subscription).toBeInstanceOf(Object);
   model.property = "pippo";
@@ -161,7 +161,7 @@ test("onchange observe", async (done) => {
   }).mockImplementationOnce(({model}) => {
     expect(model.id).toBeTruthy();
   });
-  let subscription = MdlzrSagaChannel.singleton.observeChanges(model, handler);
+  let subscription = MdlzrReduxChannel.singleton.observeChanges(model, handler);
   await orm.save(model);
   expect(model.id).toBeTruthy();
   let sameModelButOther = new TestModel({id: model.id, property: "pippo"});
@@ -184,9 +184,9 @@ test("childmodel", async () => {
   parent.child = new ChildModel();
   parent.childs = [ new ChildModel(), new ChildModel() ];
   // expect(Object.keys(parent._subs).length).toBe(1);
-  MdlzrSagaChannel.singleton.observeChanges(parent, parentChangeHandler);
+  MdlzrReduxChannel.singleton.observeChanges(parent, parentChangeHandler);
   let child = parent.child;
-  MdlzrSagaChannel.singleton.observeChanges(child, childChangeHandler);
+  MdlzrReduxChannel.singleton.observeChanges(child, childChangeHandler);
   expect(child).toBeInstanceOf(ChildModel);
   expect(childChangeHandler).toHaveBeenCalledTimes(0);
   expect(parentChangeHandler).toHaveBeenCalledTimes(0);
@@ -216,7 +216,7 @@ test("immutability", async () => {
   const parent = new TestModel();
   parent.property = "one";
   parent.id = 1;
-  const parent11 = MdlzrSagaChannel.singleton.fetch(parent, {property: "one", "id": 1});
+  const parent11 = MdlzrReduxChannel.singleton.fetch(parent, {property: "one", "id": 1});
   expect(parent).toBe(parent11);
   await orm.save(parent);
   const parent13 = await orm.getModelById(TestModel, 1);

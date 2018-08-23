@@ -17,7 +17,7 @@ import {
 } from '../utils';
 import { IFieldObject } from '../IFieldObject';
 import { FetchOption } from '../OrmDriver';
-import MdlzrSagaChannel from '../sagas/sagaChannel';
+import MdlzrReduxChannel from '../sagas/sagaChannel';
 
 const omit = require('lodash.omit');
 
@@ -41,7 +41,7 @@ export default class FirestoreOrm extends SimpleOrm {
         snapshot
           .forEach(
             (doc) => {
-              res.push(MdlzrSagaChannel.singleton.fetch(new model(), doc.data() as IFieldObject<T>));
+              res.push(MdlzrReduxChannel.singleton.fetch(new model(), doc.data() as IFieldObject<T>));
             }
           )
         ;
@@ -65,7 +65,7 @@ export default class FirestoreOrm extends SimpleOrm {
           let res: T;
           // avoid to fetch child models, i'm expecting these are already observed
           data = omit(data, ...descr.childFields);
-          res = MdlzrSagaChannel.singleton.fetch(model, data);
+          res = MdlzrReduxChannel.singleton.fetch(model, data);
           handler(res);
         }
       })
@@ -171,7 +171,7 @@ export default class FirestoreOrm extends SimpleOrm {
   }
 
   getAttributesForDB<T extends object>(model: Entity<T>): {} {
-    const attrs: any = MdlzrSagaChannel.singleton.getAttributes(model);
+    const attrs: any = MdlzrReduxChannel.singleton.getAttributes(model);
     const attrTypes = getAttrTypes(model.constructor);
     for (let attrName of Object.keys(attrs) as Array<keyof T>) {
       const attrValue: any = attrs[ attrName ];
@@ -190,7 +190,7 @@ export default class FirestoreOrm extends SimpleOrm {
   }
 
   getChildModels<T extends object>(model: Entity<T>): Entity<T>[] {
-    const attrs = MdlzrSagaChannel.singleton.getAttributes(model);
+    const attrs = MdlzrReduxChannel.singleton.getAttributes(model);
     const attrTypes = getAttrTypes(model.constructor);
     const models: Entity<T>[] = [];
     for (let attrName of Object.keys(attrs) as Array<keyof T>) {
@@ -236,7 +236,7 @@ export default class FirestoreOrm extends SimpleOrm {
   }
 
   private selfObserveModel<T extends object>(model: Entity<T>): Entity<T> {
-    const mdlz = MdlzrSagaChannel.singleton.getMdlzrInstance(model);
+    const mdlz = MdlzrReduxChannel.singleton.getMdlzrInstance(model);
     if (!mdlz.selfSubscription) {
       mdlz.selfSubscription = this.observeModel(model);
     }

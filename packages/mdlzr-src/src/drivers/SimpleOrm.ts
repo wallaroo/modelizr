@@ -4,7 +4,7 @@ import { Entity, EntityClass, getCid, getCollection, getId, isEntityClass, Maybe
 import Query from "../Query";
 import Collection from "../Collection";
 import { ISubscription } from "rxjs/Subscription";
-import MdlzrSagaChannel from '../sagas/sagaChannel';
+import MdlzrReduxChannel from '../sagas/sagaChannel';
 
 export default class SimpleOrm implements OrmDriver {
   _lastId: number = 0;
@@ -64,7 +64,7 @@ export default class SimpleOrm implements OrmDriver {
       modelId = this._lastId++;
       model = collection.setKey(model, `${modelId}`);
     }
-    model = MdlzrSagaChannel.singleton.fetch(model);
+    model = MdlzrReduxChannel.singleton.fetch(model);
     if (!this._store.byId[ collection.name ])
       this._store.byId[ collection.name ] = {};
     this._store.byId[ collection.name ][ modelId ] = getCid(model);

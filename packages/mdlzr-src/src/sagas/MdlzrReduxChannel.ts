@@ -41,7 +41,7 @@ const defState: MdlzrState = {
 };
 
 function defaultStore(): Store {
-  return createStore(MdlzrSagaChannel.reducer);
+  return createStore(MdlzrReduxChannel.reducer);
 }
 
 function initEntityInstance<T>(previous: MdlzrInstance<T> | null | undefined, cid: string): MdlzrInstance<T> {
@@ -62,8 +62,8 @@ function initEntityInstance<T>(previous: MdlzrInstance<T> | null | undefined, ci
   return res;
 }
 
-class MdlzrSagaChannel {
-  public static singleton = new MdlzrSagaChannel();
+class MdlzrReduxChannel {
+  public static singleton = new MdlzrReduxChannel();
   private static store: Store;
   private static storeRoot: string;
   //private readonly channel: Channel<Action<any> | ActionMeta<any, any>>;
@@ -168,7 +168,7 @@ class MdlzrSagaChannel {
   }
 
   public get<T extends object, K extends keyof T = keyof T>(entity: Entity<T>, attribute: K): T[K] | undefined {
-    const state: MdlzrState = MdlzrSagaChannel.getState();
+    const state: MdlzrState = MdlzrReduxChannel.getState();
     const cid: string = getCid(entity);
     const mdlzrInstance = state.byCid[ cid ] as MdlzrInstance<T>;
     if (!mdlzrInstance) {
@@ -259,7 +259,7 @@ class MdlzrSagaChannel {
   }
 
   public getMdlzrInstance<T extends object>(entity: Entity<T>): MdlzrInstance<T> {
-    const state: MdlzrState = MdlzrSagaChannel.getState();
+    const state: MdlzrState = MdlzrReduxChannel.getState();
     const cid: string = getCid(entity);
     let res = state.byCid[ cid ] as MdlzrInstance<T>;
     return res;
@@ -297,7 +297,7 @@ class MdlzrSagaChannel {
     } else {
       actionObj = action;
     }
-    return MdlzrSagaChannel.getStore().dispatch(actionObj);
+    return MdlzrReduxChannel.getStore().dispatch(actionObj);
   }
 
   handleChanges<T extends object>(
@@ -334,4 +334,4 @@ class MdlzrSagaChannel {
   }
 }
 
-export default MdlzrSagaChannel;
+export default MdlzrReduxChannel;

@@ -2,7 +2,7 @@ import * as React from "react";
 import { Component, ComponentClass, ComponentType } from "react";
 import { IObservable, ISubscription } from "mdlzr";
 import { ChangeEvent, Entity, isEntity } from 'mdlzr/utils';
-import MdlzrSagaChannel from '../../mdlzr-src/src/sagas/sagaChannel';
+import MdlzrReduxChannel from '../../mdlzr-src/src/sagas/sagaChannel';
 
 export type Omit<T, K extends keyof T> = Pick<T, ({ [P in keyof T]: P } & { [P in K]: never } & { [ x: string ]: never, [ x: number ]: never })[keyof T]>;
 
@@ -72,7 +72,7 @@ export default function mdlzr<TStateProps = {}, TOwnProps = {}>(propsbinding: Pr
           }
         };
         if (isEntity(propValue)) {
-          this._subscriptions[ propName ] = MdlzrSagaChannel.singleton.observeChanges(propValue, handler);
+          this._subscriptions[ propName ] = MdlzrReduxChannel.singleton.observeChanges(propValue, handler);
           this.setState({[ propName ]: propValue});
           this.notifyLoaded(propName);
         } else {

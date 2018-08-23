@@ -5,7 +5,7 @@ import { getAttrTypes } from '../src/utils';
 import SimpleOrm from '../src/drivers/SimpleOrm';
 import { OrmDriver } from '../src/OrmDriver';
 import { entity } from '../src/decorators/entity';
-import MdlzrSagaChannel from '../src/sagas/sagaChannel';
+import MdlzrReduxChannel from '../src/sagas/sagaChannel';
 
 const executeQuery = jest.fn(async (model, query) => {
   return [ {property: "one"}, {property: "two"}, {property: "three"} ].map((raw) => Object.assign(new model(), raw));
@@ -46,7 +46,7 @@ class TestModel {
 }
 
 beforeAll(()=>{
-  MdlzrSagaChannel.setStore();
+  MdlzrReduxChannel.setStore();
 });
 
 test("Model Class attrTypes", () => {
@@ -61,7 +61,7 @@ test("Model Class creation", () => {
   const model2 = new TestModel();
   expect(model.property).toBe("ciccio");
   expect(model2.property).toBe("default");
-  expect(MdlzrSagaChannel.singleton.getChanges(model)).toBeTruthy()
+  expect(MdlzrReduxChannel.singleton.getChanges(model)).toBeTruthy()
 });
 
 test("Model onChange", () => {
@@ -73,7 +73,7 @@ test("Model onChange", () => {
     }
   );
   expect(handler).toHaveBeenCalledTimes(0);
-  let subscription = MdlzrSagaChannel.singleton.observeChanges(testModel, handler);
+  let subscription = MdlzrReduxChannel.singleton.observeChanges(testModel, handler);
   expect(handler).toHaveBeenCalledTimes(0);
   expect(subscription).toBeInstanceOf(Object);
   testModel.property = "pippo";
@@ -91,9 +91,9 @@ test("childmodel", async () => {
   parent.child = new ChildModel();
   parent.child.foo = "barzotto";
   // expect(Object.keys(parent._subs).length).toBe(1);
-  const parentSubs = MdlzrSagaChannel.singleton.observeChanges(parent, parentChangeHandler);
+  const parentSubs = MdlzrReduxChannel.singleton.observeChanges(parent, parentChangeHandler);
   const child = parent.child;
-  const childSubs = MdlzrSagaChannel.singleton.observeChanges(child, childChangeHandler);
+  const childSubs = MdlzrReduxChannel.singleton.observeChanges(child, childChangeHandler);
   expect(child).toBeInstanceOf(ChildModel);
   expect(childChangeHandler).toHaveBeenCalledTimes(0);
   expect(parentChangeHandler).toHaveBeenCalledTimes(0);
