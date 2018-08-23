@@ -1,55 +1,47 @@
 import "reflect-metadata";
-import {
-  Entity,
-  EntityClass,
-  getCid,
-  getMdlzrInstance,
-  haveSameCid,
-  initEntity,
-  initEntityClass,
-  isEntity,
-  isEntityClass,
-  MdlzrInstance,
-  notifyObservers
-} from '../utils';
+import { Entity, EntityClass, initEntityClass, isEntityClass, } from '../utils';
 import { IAttrType } from '../IAttrType';
+import MdlzrChannel from '../sagas/sagaChannel';
 
 function createGetter<T extends object>(key: keyof T) {
   return function getter(this: Entity<T>) {
-    initEntity(this);
-    const mdlzr = getMdlzrInstance(this);
-    const res = mdlzr.changes[ key ] || mdlzr.attributes[ key ];
-    return res
+    return MdlzrChannel.singleton.get(this, key);
+    //initEntity(this);
+    // const mdlzr = getMdlzrInstance(this);
+    // const res = mdlzr.changes[ key ] || mdlzr.attributes[ key ];
+    // return res
   }
 }
 
 function createSetter<T extends object, K extends keyof T = keyof T>(key: keyof T) {
   return function setter(this: Entity<T>, value: T[K]) {
-    initEntity(this);
-    const mdlzr = getMdlzrInstance(this);
-    const oldValue = mdlzr.changes[ key ] || mdlzr.attributes[ key ];
-    if (oldValue !== value) {
-      handleChanges.call(this, mdlzr, key, oldValue, value);
-      mdlzr.changes[ key ] = value;
-      notifyObservers(this as object, key, value, oldValue)
-    }
+    return MdlzrChannel.singleton.set(this, key, value);
+
+    // initEntity(this);
+    // const mdlzr = getMdlzrInstance(this);
+    // const oldValue = mdlzr.changes[ key ] || mdlzr.attributes[ key ];
+    // if (oldValue !== value) {
+    //   handleChanges.call(this, mdlzr, key, oldValue, value);
+    //   mdlzr.changes[ key ] = value;
+    //   notifyObservers(this as object, key, value, oldValue)
+    // }
   }
 }
 
-function handleChanges<T extends object>(
-  this: Entity<T>,
-  mdlzr: MdlzrInstance<T>,
-  key: keyof T,
-  currentValue: any,
-  nextValue: any
-) {
-  if (isEntity(currentValue) && (!nextValue || !haveSameCid(currentValue, nextValue))) {
-    mdlzr.subscriptions[ getCid(currentValue) ].unsubscribe();
-  }
-  if (isEntity(nextValue) && (!currentValue || !haveSameCid(currentValue, nextValue))) {
-    mdlzr.subscriptions[ getCid(nextValue) ] = getMdlzrInstance(nextValue).subject.subscribe(({model}: any) => this[ key ] = model);
-  }
-}
+// function handleChanges<T extends object>(
+//   this: Entity<T>,
+//   mdlzr: MdlzrInstance<T>,
+//   key: keyof T,
+//   currentValue: any,
+//   nextValue: any
+// ) {
+//   if (isEntity(currentValue) && (!nextValue || !haveSameCid(currentValue, nextValue))) {
+//     mdlzr.subscriptions[ getCid(currentValue) ].unsubscribe();
+//   }
+//   if (isEntity(nextValue) && (!currentValue || !haveSameCid(currentValue, nextValue))) {
+//     mdlzr.subscriptions[ getCid(nextValue) ] = getMdlzrInstance(nextValue).subject.subscribe(({model}: any) => this[ key ] = model);
+//   }
+// }
 
 export default (descriptor: IAttrType = {}) => function property<T extends object>(this: any, target: T, key: keyof T): void {
   const clazz: EntityClass<T> = target.constructor as EntityClass<T>;

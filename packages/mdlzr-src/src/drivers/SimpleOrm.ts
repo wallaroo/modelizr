@@ -1,9 +1,10 @@
-import { FetchOption, FetchOptions, OrmDriver } from "../OrmDriver";
-import { Entity, EntityClass, fetch, getCid, getCollection, getId, isEntityClass, MaybeEntityClass } from "../utils";
+import { FetchOption, OrmDriver } from "../OrmDriver";
+import { Entity, EntityClass, getCid, getCollection, getId, isEntityClass, MaybeEntityClass } from "../utils";
 
 import Query from "../Query";
 import Collection from "../Collection";
 import { ISubscription } from "rxjs/Subscription";
+import MdlzrSagaChannel from '../sagas/sagaChannel';
 
 export default class SimpleOrm implements OrmDriver {
   _lastId: number = 0;
@@ -63,7 +64,7 @@ export default class SimpleOrm implements OrmDriver {
       modelId = this._lastId++;
       model = collection.setKey(model, `${modelId}`);
     }
-    model = fetch(model);
+    model = MdlzrSagaChannel.singleton.fetch(model);
     if (!this._store.byId[ collection.name ])
       this._store.byId[ collection.name ] = {};
     this._store.byId[ collection.name ][ modelId ] = getCid(model);

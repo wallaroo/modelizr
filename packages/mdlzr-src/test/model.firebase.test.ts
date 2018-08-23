@@ -1,12 +1,14 @@
 import property from "../src/decorators/property"
 import id from "../src/decorators/id"
-import { fetch, getAttrTypes, getChanges, getCid, getId, getMdlzrInstance, observeChanges } from '../src/utils';
+import { getAttrTypes, getCid, getId } from '../src/utils';
 import FirestoreOrm from "../src/drivers/FirestoreOrm";
 import * as firebase from 'firebase/app';
 import "firebase/auth"
 import "firebase/firestore"
 import Collection from "../src/Collection";
 import { IFieldObject } from '../src/IFieldObject';
+import { entity } from '../src/decorators/entity';
+import MdlzrSagaChannel from '../src/sagas/sagaChannel';
 
 const pick = require("lodash.pick");
 //
@@ -23,7 +25,9 @@ firebase.initializeApp(config);
 const db = firebase.firestore();
 db.settings({timestampsInSnapshots: true});
 const orm = new FirestoreOrm(db);
-
+beforeAll(()=>{
+  MdlzrSagaChannel.setStore();
+});
 beforeEach(async () => {
   const collection = await db.collection("testmodels").get();
   const collection2 = await db.collection("testCollection").get();
@@ -45,6 +49,7 @@ beforeEach(async () => {
   return batch.commit()
 });
 
+@entity
 class BaseClass {
   constructor(obj?: IFieldObject<BaseClass>) {
     Object.assign(this, obj)
@@ -58,6 +63,7 @@ class BaseClass {
   description: string;
 }
 
+@entity
 class ChildModel extends BaseClass {
   constructor(obj?: IFieldObject<ChildModel>) {
     super(obj);
@@ -71,6 +77,7 @@ class ChildModel extends BaseClass {
   childs: BaseClass[];
 }
 
+@entity
 class TestModel extends BaseClass {
   constructor(obj?: IFieldObject<TestModel>) {
     super(obj);
@@ -91,7 +98,7 @@ test("model type", () => {
   expect(getAttrTypes(TestModel)[ "property" ]).toBeTruthy();
   const testModel = new TestModel({property: "test"});
   expect(testModel).toBeInstanceOf(TestModel);
-  expect(getMdlzrInstance(testModel)).toBeTruthy();
+  //expect(getMdlzrInstance(testModel)).toBeTruthy();
   expect(testModel.property).toBe("test")
   // const testModel2 = new TestModel();
   // expect(getMdlzrInstance(testModel2)).toBeTruthy();
@@ -100,15 +107,15 @@ test("model type", () => {
 test("model save", async () => {
   let model = new TestModel();
   expect(getCid(model));
-  expect(getChanges(model)).toBeTruthy();
+  expect(MdlzrSagaChannel.singleton.getChanges(model)).toBeTruthy();
   expect(model.property).toBe("default");
   model.property = "value";
   expect(model.property).toBe("value");
 
   model.property = "1one";
-  expect(getChanges(model)).toBeTruthy();
+  expect(MdlzrSagaChannel.singleton.getChanges(model)).toBeTruthy();
   model = await orm.save(model);
-  expect(getChanges(model)).toBeNull();
+  expect(MdlzrSagaChannel.singleton.getChanges(model)).toBeNull();
   return true;
 });
 
@@ -132,7 +139,7 @@ test("onchange", async () => {
   let handler = jest.fn(({model}) => expect(model.property).toBe("pippo"));
   model.property = "pluto";
   expect(handler).toHaveBeenCalledTimes(0);
-  let subscription = observeChanges(model, handler);
+  let subscription = MdlzrSagaChannel.singleton.observeChanges(model, handler);
   expect(handler).toHaveBeenCalledTimes(0);
   expect(subscription).toBeInstanceOf(Object);
   model.property = "pippo";
@@ -154,7 +161,7 @@ test("onchange observe", async (done) => {
   }).mockImplementationOnce(({model}) => {
     expect(model.id).toBeTruthy();
   });
-  let subscription = observeChanges(model, handler);
+  let subscription = MdlzrSagaChannel.singleton.observeChanges(model, handler);
   await orm.save(model);
   expect(model.id).toBeTruthy();
   let sameModelButOther = new TestModel({id: model.id, property: "pippo"});
@@ -177,9 +184,9 @@ test("childmodel", async () => {
   parent.child = new ChildModel();
   parent.childs = [ new ChildModel(), new ChildModel() ];
   // expect(Object.keys(parent._subs).length).toBe(1);
-  observeChanges(parent, parentChangeHandler);
+  MdlzrSagaChannel.singleton.observeChanges(parent, parentChangeHandler);
   let child = parent.child;
-  observeChanges(child, childChangeHandler);
+  MdlzrSagaChannel.singleton.observeChanges(child, childChangeHandler);
   expect(child).toBeInstanceOf(ChildModel);
   expect(childChangeHandler).toHaveBeenCalledTimes(0);
   expect(parentChangeHandler).toHaveBeenCalledTimes(0);
@@ -209,7 +216,7 @@ test("immutability", async () => {
   const parent = new TestModel();
   parent.property = "one";
   parent.id = 1;
-  const parent11 = fetch(parent, {property: "one", "id": 1});
+  const parent11 = MdlzrSagaChannel.singleton.fetch(parent, {property: "one", "id": 1});
   expect(parent).toBe(parent11);
   await orm.save(parent);
   const parent13 = await orm.getModelById(TestModel, 1);

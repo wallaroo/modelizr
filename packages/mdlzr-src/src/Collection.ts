@@ -1,6 +1,7 @@
 import Query from "./Query";
 import { OrmDriver } from "./OrmDriver";
-import { Entity, EntityClass, fetch, getClassName, getIdAttribute, isEntityClass, MaybeEntityClass } from './utils';
+import { Entity, EntityClass, getClassName, getIdAttribute, isEntityClass, MaybeEntityClass } from './utils';
+import MdlzrSagaChannel from './sagas/sagaChannel';
 
 const pluralize = require("pluralize");
 
@@ -46,7 +47,7 @@ class Collection<T extends object> {
   }
 
   setKey(model: Entity<T>, key: any): Entity<T> {
-    return fetch(model, {[ this.keyAttribute ]: key} as any);
+    return MdlzrSagaChannel.singleton.fetch(model, {[ this.keyAttribute ]: key} as any);
   }
 
   async save(ormDriver: OrmDriver, ...models: Array<T>): Promise<T | Array<T>> {

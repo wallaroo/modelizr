@@ -1,10 +1,11 @@
 import property from "../src/decorators/property"
 import id from "../src/decorators/id"
 import "core-js/shim"
-import { getAttrTypes, getChanges, observeChanges } from '../src/utils';
+import { getAttrTypes } from '../src/utils';
 import SimpleOrm from '../src/drivers/SimpleOrm';
 import { OrmDriver } from '../src/OrmDriver';
 import { entity } from '../src/decorators/entity';
+import MdlzrSagaChannel from '../src/sagas/sagaChannel';
 
 const executeQuery = jest.fn(async (model, query) => {
   return [ {property: "one"}, {property: "two"}, {property: "three"} ].map((raw) => Object.assign(new model(), raw));
@@ -20,6 +21,7 @@ const orm:OrmDriver = new SimpleOrm({
   observeQuery
 });
 
+@entity
 class ChildModel {
 
   @id
@@ -30,6 +32,7 @@ class ChildModel {
   foo: string = "bar";
 }
 
+@entity
 class TestModel {
   @id
   @property()
@@ -41,6 +44,10 @@ class TestModel {
   @property()
   child: ChildModel | null;
 }
+
+beforeAll(()=>{
+  MdlzrSagaChannel.setStore();
+});
 
 test("Model Class attrTypes", () => {
   expect(getAttrTypes(TestModel)[ "property" ]).toBeTruthy();
@@ -54,7 +61,7 @@ test("Model Class creation", () => {
   const model2 = new TestModel();
   expect(model.property).toBe("ciccio");
   expect(model2.property).toBe("default");
-  expect(getChanges(model)).toBeTruthy()
+  expect(MdlzrSagaChannel.singleton.getChanges(model)).toBeTruthy()
 });
 
 test("Model onChange", () => {
@@ -66,7 +73,7 @@ test("Model onChange", () => {
     }
   );
   expect(handler).toHaveBeenCalledTimes(0);
-  let subscription = observeChanges(testModel, handler);
+  let subscription = MdlzrSagaChannel.singleton.observeChanges(testModel, handler);
   expect(handler).toHaveBeenCalledTimes(0);
   expect(subscription).toBeInstanceOf(Object);
   testModel.property = "pippo";
@@ -84,9 +91,9 @@ test("childmodel", async () => {
   parent.child = new ChildModel();
   parent.child.foo = "barzotto";
   // expect(Object.keys(parent._subs).length).toBe(1);
-  const parentSubs = observeChanges(parent, parentChangeHandler);
+  const parentSubs = MdlzrSagaChannel.singleton.observeChanges(parent, parentChangeHandler);
   const child = parent.child;
-  const childSubs = observeChanges(child, childChangeHandler);
+  const childSubs = MdlzrSagaChannel.singleton.observeChanges(child, childChangeHandler);
   expect(child).toBeInstanceOf(ChildModel);
   expect(childChangeHandler).toHaveBeenCalledTimes(0);
   expect(parentChangeHandler).toHaveBeenCalledTimes(0);

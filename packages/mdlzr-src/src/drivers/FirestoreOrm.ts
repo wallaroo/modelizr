@@ -3,24 +3,23 @@ import Query from "../Query";
 import Collection from "../Collection";
 import { ISubscription } from "rxjs/Subscription"
 import * as types from "@firebase/firestore-types";
-const omit = require('lodash.omit');
 import {
   Entity,
   EntityClass,
-  fetch,
-  getAttributes,
   getAttrTypes,
   getCollection,
   getId,
-  getIdAttribute, getMdlzrDescriptor,
-  getMdlzrInstance,
-  getRef,
+  getIdAttribute,
+  getMdlzrDescriptor,
   isEntity,
   isEntityClass,
   MaybeEntityClass
 } from '../utils';
 import { IFieldObject } from '../IFieldObject';
-import { FetchOption, FetchOptions } from '../OrmDriver';
+import { FetchOption } from '../OrmDriver';
+import MdlzrSagaChannel from '../sagas/sagaChannel';
+
+const omit = require('lodash.omit');
 
 export default class FirestoreOrm extends SimpleOrm {
   private _db: types.FirebaseFirestore;
@@ -42,7 +41,7 @@ export default class FirestoreOrm extends SimpleOrm {
         snapshot
           .forEach(
             (doc) => {
-              res.push(fetch(new model(), doc.data() as IFieldObject<T>));
+              res.push(MdlzrSagaChannel.singleton.fetch(new model(), doc.data() as IFieldObject<T>));
             }
           )
         ;
@@ -66,7 +65,7 @@ export default class FirestoreOrm extends SimpleOrm {
           let res: T;
           // avoid to fetch child models, i'm expecting these are already observed
           data = omit(data, ...descr.childFields);
-          res = fetch(model, data);
+          res = MdlzrSagaChannel.singleton.fetch(model, data);
           handler(res);
         }
       })
@@ -172,7 +171,7 @@ export default class FirestoreOrm extends SimpleOrm {
   }
 
   getAttributesForDB<T extends object>(model: Entity<T>): {} {
-    const attrs: any = getAttributes(model);
+    const attrs: any = MdlzrSagaChannel.singleton.getAttributes(model);
     const attrTypes = getAttrTypes(model.constructor);
     for (let attrName of Object.keys(attrs) as Array<keyof T>) {
       const attrValue: any = attrs[ attrName ];
@@ -191,7 +190,7 @@ export default class FirestoreOrm extends SimpleOrm {
   }
 
   getChildModels<T extends object>(model: Entity<T>): Entity<T>[] {
-    const attrs = getAttributes(model);
+    const attrs = MdlzrSagaChannel.singleton.getAttributes(model);
     const attrTypes = getAttrTypes(model.constructor);
     const models: Entity<T>[] = [];
     for (let attrName of Object.keys(attrs) as Array<keyof T>) {
@@ -237,7 +236,7 @@ export default class FirestoreOrm extends SimpleOrm {
   }
 
   private selfObserveModel<T extends object>(model: Entity<T>): Entity<T> {
-    const mdlz = getMdlzrInstance(model);
+    const mdlz = MdlzrSagaChannel.singleton.getMdlzrInstance(model);
     if (!mdlz.selfSubscription) {
       mdlz.selfSubscription = this.observeModel(model);
     }
@@ -300,4 +299,8 @@ export default class FirestoreOrm extends SimpleOrm {
     }
     return res as T;
   }
+}
+
+export function getRef<T extends object, K extends keyof T = keyof T>(model: Entity<T>): { [ k in K ]: T[K] } {
+  return {[ getIdAttribute(model)]: getId(model) as T[K]} as { [ k in keyof T ]: T[K] }
 }
