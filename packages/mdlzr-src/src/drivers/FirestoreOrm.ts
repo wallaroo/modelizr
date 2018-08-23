@@ -17,7 +17,7 @@ import {
 } from '../utils';
 import { IFieldObject } from '../IFieldObject';
 import { FetchOption } from '../OrmDriver';
-import MdlzrReduxChannel from '../sagas/sagaChannel';
+import MdlzrReduxChannel from '../redux/MdlzrReduxChannel';
 
 const omit = require('lodash.omit');
 

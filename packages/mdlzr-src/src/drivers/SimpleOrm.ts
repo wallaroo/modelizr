@@ -4,7 +4,7 @@ import { Entity, EntityClass, getCid, getCollection, getId, isEntityClass, Maybe
 import Query from "../Query";
 import Collection from "../Collection";
 import { ISubscription } from "rxjs/Subscription";
-import MdlzrReduxChannel from '../sagas/sagaChannel';
+import MdlzrReduxChannel from '../redux/MdlzrReduxChannel';
 
 export default class SimpleOrm implements OrmDriver {
   _lastId: number = 0;

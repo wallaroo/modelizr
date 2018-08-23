@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { Entity, EntityClass, initEntityClass, isEntityClass, } from '../utils';
 import { IAttrType } from '../IAttrType';
-import MdlzrChannel from '../sagas/sagaChannel';
+import MdlzrChannel from '../redux/MdlzrReduxChannel';
 
 function createGetter<T extends object>(key: keyof T) {
   return function getter(this: Entity<T>) {

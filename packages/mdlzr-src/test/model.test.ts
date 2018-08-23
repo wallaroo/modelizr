@@ -5,7 +5,7 @@ import { getAttrTypes } from '../src/utils';
 import SimpleOrm from '../src/drivers/SimpleOrm';
 import { OrmDriver } from '../src/OrmDriver';
 import { entity } from '../src/decorators/entity';
-import MdlzrReduxChannel from '../src/sagas/sagaChannel';
+import MdlzrReduxChannel from '../src/redux/MdlzrReduxChannel';
 
 const executeQuery = jest.fn(async (model, query) => {
   return [ {property: "one"}, {property: "two"}, {property: "three"} ].map((raw) => Object.assign(new model(), raw));

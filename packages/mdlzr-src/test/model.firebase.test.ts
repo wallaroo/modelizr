@@ -8,7 +8,7 @@ import "firebase/firestore"
 import Collection from "../src/Collection";
 import { IFieldObject } from '../src/IFieldObject';
 import { entity } from '../src/decorators/entity';
-import MdlzrReduxChannel from '../src/sagas/sagaChannel';
+import MdlzrReduxChannel from '../src/redux/MdlzrReduxChannel';
 
 const pick = require("lodash.pick");
 //

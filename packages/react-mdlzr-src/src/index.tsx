@@ -2,7 +2,7 @@ import * as React from "react";
 import { Component, ComponentClass, ComponentType } from "react";
 import { IObservable, ISubscription } from "mdlzr";
 import { ChangeEvent, Entity, isEntity } from 'mdlzr/utils';
-import MdlzrReduxChannel from '../../mdlzr-src/src/sagas/sagaChannel';
+import MdlzrReduxChannel from 'mdlzr/sagas/MdlzrReduxChannel';
 
 export type Omit<T, K extends keyof T> = Pick<T, ({ [P in keyof T]: P } & { [P in K]: never } & { [ x: string ]: never, [ x: number ]: never })[keyof T]>;
 

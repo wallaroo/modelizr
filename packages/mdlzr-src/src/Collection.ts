@@ -1,7 +1,7 @@
 import Query from "./Query";
 import { OrmDriver } from "./OrmDriver";
 import { Entity, EntityClass, getClassName, getIdAttribute, isEntityClass, MaybeEntityClass } from './utils';
-import MdlzrReduxChannel from './sagas/sagaChannel';
+import MdlzrReduxChannel from './redux/MdlzrReduxChannel';
 
 const pluralize = require("pluralize");
 
