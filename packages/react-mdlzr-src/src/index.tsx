@@ -2,7 +2,7 @@ import * as React from "react";
 import { Component, ComponentClass, ComponentType } from "react";
 import { IObservable, ISubscription } from "mdlzr";
 import { Entity, isEntity } from 'mdlzr/utils';
-import MdlzrReduxChannel from 'mdlzr/sagas/MdlzrReduxChannel';
+import MdlzrReduxChannel from 'mdlzr/redux/MdlzrReduxChannel';
 
 export type Omit<T, K extends keyof T> = Pick<T, ({ [P in keyof T]: P } & { [P in K]: never } & { [ x: string ]: never, [ x: number ]: never })[keyof T]>;
 
@@ -67,7 +67,7 @@ export default function mdlzr<TStateProps = {}, TOwnProps = {}>(propsbinding: Pr
       }
 
       private _subscribe<T extends object>(propName: string, propValue: IObservable<T> | Entity<T>) {
-        const handler = (model:T | T[]) => {
+        const handler = (model:any) => {
           this.notifyLoaded(propName);
           if (model !== this.state[ propName ]) {
             this.setState({[ propName ]: model});

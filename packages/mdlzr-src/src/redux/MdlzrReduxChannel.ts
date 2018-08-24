@@ -11,12 +11,10 @@ import {
   isEntity,
   objectDif,
 } from '../utils';
-import { applyMiddleware, createStore, Store } from 'redux';
+import { createStore, Store } from 'redux';
 import { Subject, Subscription } from 'rxjs';
 import { ISubscription } from 'rxjs/Subscription';
 import { IFieldObject } from '../IFieldObject';
-import createSagaMiddleware from "redux-saga";
-import { call, take } from 'redux-saga/effects';
 
 export type MdlzrInstance<T, KEYS extends keyof T = keyof T> = {
   attributes: { [key in KEYS]?: T[key] }
@@ -67,7 +65,6 @@ class MdlzrReduxChannel {
   public static singleton = new MdlzrReduxChannel();
   private static state: MdlzrState;
   private static store: Store;
-  private static storeRoot: string;
   private emitter?: (action: Action<any> | ActionMeta<any, any> | END) => void;
 
   public static reducer(state: MdlzrState = defState, action: Action<any> | ActionMeta<any, any>) {
@@ -116,11 +113,9 @@ class MdlzrReduxChannel {
     return ret;
   }
 
-  public static setStore(store: Store = defaultStore(), storeRoot: string = "") {
+  public static setStore(store: Store = defaultStore()) {
     if (!this.store) {
       this.store = store;
-      // this.storeRoot = storeRoot;
-      // FIXME maybe is better to subscribe to store and refresh a local state property
     } else {
       throw new Error("Change the store can cause several errors");
     }
