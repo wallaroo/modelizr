@@ -53,11 +53,12 @@ export default class ReduxOrm implements OrmDriver  {
     return this.dispatch<T>(`${collection.name.toUpperCase()}/GET/${id}`, options, {async: true});
   }
 
+
   private async dispatch<R, T=any, M=any>(type: string, payload?: T, meta?: M): Promise<R> {
     return this.innerDispatch(this.action<T,M>(type, payload, meta)) as any as R;
   }
 
-  private action<T, M>(type: string, payload?: T, meta?: M): Action<T> | ActionMeta<T, M> {
+  public action<T, M>(type: string, payload?: T, meta?: M): Action<T> | ActionMeta<T, M> {
     return {
       type: `${this.baseActionName}/${type}`,
       payload,

@@ -13,7 +13,7 @@ function cidSetter(this: any, value:string) {
   this[ "$$cid$$" ] = value;
 }
 
-export function entity(clazz: any) {
+export default function entity(clazz: any) {
   initEntityClass(clazz);
   Object.defineProperty(clazz.prototype, "__cid__", {
     enumerable: false,

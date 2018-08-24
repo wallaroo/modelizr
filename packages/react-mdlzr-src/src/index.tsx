@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Component, ComponentClass, ComponentType } from "react";
 import { IObservable, ISubscription } from "mdlzr";
-import { ChangeEvent, Entity, isEntity } from 'mdlzr/utils';
+import { Entity, isEntity } from 'mdlzr/utils';
 import MdlzrReduxChannel from 'mdlzr/sagas/MdlzrReduxChannel';
 
 export type Omit<T, K extends keyof T> = Pick<T, ({ [P in keyof T]: P } & { [P in K]: never } & { [ x: string ]: never, [ x: number ]: never })[keyof T]>;
@@ -49,8 +49,10 @@ export default function mdlzr<TStateProps = {}, TOwnProps = {}>(propsbinding: Pr
           return await propsbinding(props as any)
         } else if (Array.isArray(propsbinding)) {
           return pick(props, propsbinding);
-        } else {
+        } else if (propsbinding){
           return propsbinding;
+        } else {
+          return props;
         }
       }
 
@@ -64,14 +66,14 @@ export default function mdlzr<TStateProps = {}, TOwnProps = {}>(propsbinding: Pr
         }
       }
 
-      private _subscribe(propName: string, propValue: IObservable<any> | Entity<any> | Array<Entity<any>>) {
-        const handler = ({model}:ChangeEvent<any>) => {
+      private _subscribe<T extends object>(propName: string, propValue: IObservable<T> | Entity<T>) {
+        const handler = (model:T | T[]) => {
           this.notifyLoaded(propName);
           if (model !== this.state[ propName ]) {
             this.setState({[ propName ]: model});
           }
         };
-        if (isEntity(propValue)) {
+        if (isEntity<T>(propValue)) {
           this._subscriptions[ propName ] = MdlzrReduxChannel.singleton.observeChanges(propValue, handler);
           this.setState({[ propName ]: propValue});
           this.notifyLoaded(propName);
@@ -80,7 +82,7 @@ export default function mdlzr<TStateProps = {}, TOwnProps = {}>(propsbinding: Pr
         }
       }
 
-      async componentWillMount() {
+      async componentDidMount() {
         const propsBinding = await this.getPropsBinding(this.props);
         this.loadingProps = Object.keys(propsBinding);
         for (const propName of this.loadingProps) {
@@ -88,11 +90,11 @@ export default function mdlzr<TStateProps = {}, TOwnProps = {}>(propsbinding: Pr
         }
       }
 
-      async componentWillReceiveProps(nextProps: any) {
+      async componentDidUpdate(prevProps: any) {
         const propsBinding = await this.getPropsBinding(this.props);
-        const nxtProps = await this.getPropsBinding(nextProps);
+        const prvProps = await this.getPropsBinding(prevProps);
         for (const propName of (Object.keys(propsBinding))) {
-          if ((this.props as any)[ propName ] !== nxtProps[ propName ]) {
+          if ((this.props as any)[ propName ] !== prvProps[ propName ]) {
             this._subscriptions[ propName ] && this._subscriptions[ propName ].unsubscribe();
             this._subscribe(propName, propsBinding[ propName ]);
           }

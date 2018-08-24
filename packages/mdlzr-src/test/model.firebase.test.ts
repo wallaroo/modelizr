@@ -7,7 +7,7 @@ import "firebase/auth"
 import "firebase/firestore"
 import Collection from "../src/Collection";
 import { IFieldObject } from '../src/IFieldObject';
-import { entity } from '../src/decorators/entity';
+import entity from '../src/decorators/entity';
 import MdlzrReduxChannel from '../src/redux/MdlzrReduxChannel';
 
 const pick = require("lodash.pick");
@@ -136,7 +136,7 @@ test("model save composed", async () => {
 
 test("onchange", async () => {
   let model = new TestModel();
-  let handler = jest.fn(({model}) => expect(model.property).toBe("pippo"));
+  let handler = jest.fn((model) => expect(model.property).toBe("pippo"));
   model.property = "pluto";
   expect(handler).toHaveBeenCalledTimes(0);
   let subscription = MdlzrReduxChannel.singleton.observeChanges(model, handler);
@@ -154,11 +154,11 @@ test("onchange", async () => {
 
 test("onchange observe", async (done) => {
   let model = new TestModel({property: "foo"});
-  let handler = jest.fn(({model}) => {
+  let handler = jest.fn((model) => {
     expect(model.property).toBe("pippo");
     expect.assertions(4);
     done();
-  }).mockImplementationOnce(({model}) => {
+  }).mockImplementationOnce((model) => {
     expect(model.id).toBeTruthy();
   });
   let subscription = MdlzrReduxChannel.singleton.observeChanges(model, handler);

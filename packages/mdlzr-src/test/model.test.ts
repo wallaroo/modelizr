@@ -4,7 +4,7 @@ import "core-js/shim"
 import { getAttrTypes } from '../src/utils';
 import SimpleOrm from '../src/drivers/SimpleOrm';
 import { OrmDriver } from '../src/OrmDriver';
-import { entity } from '../src/decorators/entity';
+import entity from '../src/decorators/entity';
 import MdlzrReduxChannel from '../src/redux/MdlzrReduxChannel';
 
 const executeQuery = jest.fn(async (model, query) => {
@@ -67,7 +67,7 @@ test("Model Class creation", () => {
 test("Model onChange", () => {
   let testModel = new TestModel();
   let handler = jest.fn(
-    ({model}) => {
+    (model) => {
       expect(model.property).toBe("pippo");
       expect(model).not.toBe(testModel);
     }
@@ -85,8 +85,8 @@ test("Model onChange", () => {
 });
 
 test("childmodel", async () => {
-  const parentChangeHandler = jest.fn(({model})=> expect(model).toBeInstanceOf(TestModel));
-  const childChangeHandler = jest.fn(({model})=> expect(model).toBeInstanceOf(ChildModel));
+  const parentChangeHandler = jest.fn((model)=> expect(model).toBeInstanceOf(TestModel));
+  const childChangeHandler = jest.fn((model)=> expect(model).toBeInstanceOf(ChildModel));
   let parent = new TestModel();
   parent.child = new ChildModel();
   parent.child.foo = "barzotto";

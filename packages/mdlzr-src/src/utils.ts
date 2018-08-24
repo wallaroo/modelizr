@@ -12,8 +12,6 @@ export type MdlzrDescriptor<T extends object> = {
   childFields: Array<keyof T>
 }
 
-export type ChangeEvent<T, K extends keyof T = keyof T> = { model: T, attribute?: K, newValue?: T[K], oldValue?: T[K] }
-
 export type EntityClass<T extends object> = {
   new(...x: any[]): Entity<T>
   prototype: T;

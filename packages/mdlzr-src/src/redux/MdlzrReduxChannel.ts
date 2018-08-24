@@ -1,7 +1,6 @@
 import { END } from "redux-saga"
 import { Action, ActionMeta } from 'redux-actions';
 import {
-  ChangeEvent,
   clone,
   Entity,
   getCid,
@@ -12,15 +11,17 @@ import {
   isEntity,
   objectDif,
 } from '../utils';
-import { createStore, Store } from 'redux';
+import { applyMiddleware, createStore, Store } from 'redux';
 import { Subject, Subscription } from 'rxjs';
 import { ISubscription } from 'rxjs/Subscription';
 import { IFieldObject } from '../IFieldObject';
+import createSagaMiddleware from "redux-saga";
+import { call, take } from 'redux-saga/effects';
 
 export type MdlzrInstance<T, KEYS extends keyof T = keyof T> = {
   attributes: { [key in KEYS]?: T[key] }
   changes: { [key in KEYS]?: T[key] }
-  subject: Subject<ChangeEvent<T>>
+  subject: Subject<T>
   subscriptions: { [ cid: string ]: Subscription }
   selfSubscription?: ISubscription
   cid: string
@@ -64,25 +65,10 @@ function initEntityInstance<T>(previous: MdlzrInstance<T> | null | undefined, ci
 
 class MdlzrReduxChannel {
   public static singleton = new MdlzrReduxChannel();
+  private static state: MdlzrState;
   private static store: Store;
   private static storeRoot: string;
-  //private readonly channel: Channel<Action<any> | ActionMeta<any, any>>;
   private emitter?: (action: Action<any> | ActionMeta<any, any> | END) => void;
-
-  // public getSaga(): () => void {
-  //   const channel = this.channel;
-  //   return function* () {
-  //     try {
-  //       while (true) {
-  //         // take(END) will cause the saga to terminate by jumping to the finally block
-  //         let action = yield take(channel);
-  //         yield put(action);
-  //       }
-  //     } finally {
-  //       console.log('channel closed')
-  //     }
-  //   }
-  // };
 
   public static reducer(state: MdlzrState = defState, action: Action<any> | ActionMeta<any, any>) {
     let ret: MdlzrState;
@@ -104,7 +90,7 @@ class MdlzrReduxChannel {
       if (action.payload.id) {
         ret.byId[ action.payload.entityClass ][ action.payload.id ] = action.payload.cid;
       }
-    }else if (action.type.startsWith("@@MDLZR/FETCH")) {
+    } else if (action.type.startsWith("@@MDLZR/FETCH")) {
       const entityInstance = initEntityInstance(state.byCid[ action.payload.cid ], action.payload.cid);
       entityInstance.changes = action.payload.changes;
       entityInstance.attributes = action.payload.attributes;
@@ -123,16 +109,17 @@ class MdlzrReduxChannel {
       if (action.payload.id) {
         ret.byId[ action.payload.entityClass ][ action.payload.id ] = action.payload.cid;
       }
-    }else {
+    } else {
       ret = state;
     }
+    MdlzrReduxChannel.state = ret;
     return ret;
   }
 
   public static setStore(store: Store = defaultStore(), storeRoot: string = "") {
     if (!this.store) {
       this.store = store;
-      this.storeRoot = storeRoot;
+      // this.storeRoot = storeRoot;
       // FIXME maybe is better to subscribe to store and refresh a local state property
     } else {
       throw new Error("Change the store can cause several errors");
@@ -148,11 +135,8 @@ class MdlzrReduxChannel {
   }
 
   public static getState(): MdlzrState {
-    const state = this.getStore().getState();
-    if (!this.storeRoot && state) {
-      return state;
-    } else if (state && state[ this.storeRoot ]) {
-      return state[ this.storeRoot ]
+    if (MdlzrReduxChannel.state) {
+      return MdlzrReduxChannel.state;
     } else {
       throw new Error("State not ready yet");
     }
@@ -191,6 +175,7 @@ class MdlzrReduxChannel {
     const entityClass = getClassName(entity.constructor);
     const setDescriptor = {
       entityClass,
+      entity,
       cid,
       id,
       changes: {[ attribute ]: value}
@@ -202,7 +187,7 @@ class MdlzrReduxChannel {
     this.dispatch(`SET/${entityClass}/${cid}/${attribute}`, setDescriptor);
     if (oldValue !== value) {
       this.handleChange(entity, attribute, oldValue, value);
-      this.notifyObservers<T, K>(entity, attribute, value, oldValue)
+      this.notifyObservers<T, K>(entity); // TODO REMOVE
     }
   }
 
@@ -212,8 +197,9 @@ class MdlzrReduxChannel {
     const mdlzrDescriptor = getMdlzrDescriptor(entity);
     const cid = getCid(entity);
     const fetchPayload = {
-      changes:{} as any,
-      attributes:{},
+      entity,
+      changes: {} as any,
+      attributes: {},
       cid
     } as any;
     const resMdlzr = this.getMdlzrInstance(res);
@@ -222,13 +208,13 @@ class MdlzrReduxChannel {
       Object.assign(fetchPayload.attributes, resMdlzr.attributes, resMdlzr.changes);
       let id;
       if (mdlzrDescriptor.idAttribute in fetchPayload.attributes) {
-        id = fetchPayload.attributes[mdlzrDescriptor.idAttribute];
+        id = fetchPayload.attributes[ mdlzrDescriptor.idAttribute ];
       } else if (resMdlzr) {
         id = resMdlzr.attributes[ mdlzrDescriptor.idAttribute ]
       }
       fetchPayload.id = id;
       this.dispatch(`FETCH/${entityClass}/${cid}`, fetchPayload);
-    }else {
+    } else {
       const changes = objectDif(this.getAttributes(entity), setHash);
 
       if (changes) {
@@ -241,7 +227,7 @@ class MdlzrReduxChannel {
         }
         let id;
         if (mdlzrDescriptor.idAttribute in setHash) {
-          id = setHash[mdlzrDescriptor.idAttribute];
+          id = setHash[ mdlzrDescriptor.idAttribute ];
         } else if (resMdlzr) {
           id = resMdlzr.attributes[ mdlzrDescriptor.idAttribute ]
         }
@@ -253,16 +239,21 @@ class MdlzrReduxChannel {
     return res;
   }
 
-  public observeChanges<T extends object>(model: Entity<T>, handler: (event: ChangeEvent<T>) => void): Subscription {
+  public observeChanges<T extends object>(model: Entity<T>, handler: (event: T) => void): Subscription {
     const mdlzr = this.getMdlzrInstance(model);
     return mdlzr.subject.subscribe(handler);
   }
 
-  public getMdlzrInstance<T extends object>(entity: Entity<T>): MdlzrInstance<T> {
+  public getMdlzrInstance<T extends object>(entity: Entity<T> | string): MdlzrInstance<T> {
+    let cid: string;
     const state: MdlzrState = MdlzrReduxChannel.getState();
-    const cid: string = getCid(entity);
-    let res = state.byCid[ cid ] as MdlzrInstance<T>;
-    return res;
+
+    if (typeof entity === "string") {
+      cid = entity;
+    } else {
+      cid = getCid(entity);
+    }
+    return state.byCid[ cid ] as MdlzrInstance<T>;
   }
 
   public getAttributes<T extends object>(model: Entity<T>): IFieldObject<T> {
@@ -270,19 +261,13 @@ class MdlzrReduxChannel {
     return Object.assign({}, mdlzr.attributes, mdlzr.changes) as IFieldObject<T>;
   }
 
-  private constructor() {
-    // this.channel = eventChannel((emitter) => {
-    //   this.emitter = emitter;
-    //   return () => {
-    //     // nothing to do
-    //   }
-    // }, buffers.fixed())
-  }
-
-  private notifyObservers<T extends object, K extends keyof T = keyof T>(model: Entity<T>, attribute?: K, newValue?: T[K], oldValue?: T[K]) {
-    const mdlzr = this.getMdlzrInstance(model);
+  /**
+   * @deprecated
+   */
+  private notifyObservers<T extends object, K extends keyof T = keyof T>(model: Entity<T>) {
+    const mdlzr = MdlzrReduxChannel.singleton.getMdlzrInstance(model);
     if (mdlzr.subject.observers.length) {
-      mdlzr.subject.next({model: clone(model), attribute, newValue, oldValue});
+      mdlzr.subject.next(clone(model));
     }
   }
 
@@ -321,7 +306,7 @@ class MdlzrReduxChannel {
       mdlzr.subscriptions[ getCid(currentValue) ].unsubscribe();
     }
     if (isEntity(nextValue) && (!currentValue || !haveSameCid(currentValue, nextValue))) {
-      mdlzr.subscriptions[ getCid(nextValue) ] = this.getMdlzrInstance(nextValue).subject.subscribe(({model}: any) => entity[ key ] = model);
+      mdlzr.subscriptions[ getCid(nextValue) ] = this.getMdlzrInstance(nextValue).subject.subscribe((model: any) => entity[ key ] = model);
     }
   }
 
