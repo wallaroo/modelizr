@@ -157,7 +157,9 @@ class MdlzrReduxChannel {
     return mdlzrInstance.changes[ attribute ] || mdlzrInstance.attributes[ attribute ];
   }
 
-  public set<T extends object, K extends keyof T = keyof T>(entity: Entity<T>, attribute: K, value: T[K]) {
+  public set<T extends object, K extends keyof T = keyof T>(entity: Entity<T>, attribute: Partial<T>):void;
+  public set<T extends object, K extends keyof T = keyof T>(entity: Entity<T>, attribute: K, value: T[K]):void;
+  public set<T extends object, K extends keyof T = keyof T>(entity: Entity<T>, attribute: K|Partial<T>, value?: T[K]) {
     const cid: string = getCid(entity);
     const mdlzrInstance = this.getMdlzrInstance(entity);
     const mdlzrDescriptor = getMdlzrDescriptor(entity);
@@ -168,21 +170,30 @@ class MdlzrReduxChannel {
       id = mdlzrInstance.attributes[ mdlzrDescriptor.idAttribute ]
     }
     const entityClass = getClassName(entity.constructor);
+    const changes:Partial<T> = {};
+    if (typeof attribute == 'string'){
+      changes[attribute] = value;
+    }else{
+      Object.assign(changes,attribute);
+    }
     const setDescriptor = {
       entityClass,
       entity,
       cid,
       id,
-      changes: {[ attribute ]: value}
+      changes: changes
     };
-    let oldValue;
-    if (mdlzrInstance) {
-      oldValue = mdlzrInstance.changes[ attribute ] || mdlzrInstance.attributes[ attribute ] as T[K];
-    }
-    this.dispatch(`SET/${entityClass}/${cid}/${attribute}`, setDescriptor);
-    if (oldValue !== value) {
-      this.handleChange(entity, attribute, oldValue, value);
-      this.notifyObservers<T, K>(entity); // TODO REMOVE
+
+    for(const attribute of Object.keys(changes) as Array<keyof T>) {
+      let oldValue;
+      if (mdlzrInstance) {
+        oldValue = mdlzrInstance.changes[ attribute ] || mdlzrInstance.attributes[ attribute ] as T[K];
+      }
+      this.dispatch(`SET/${entityClass}/${cid}/${attribute}`, setDescriptor);
+      if (oldValue !== value) {
+        this.handleChange(entity, attribute, oldValue, value);
+        this.notifyObservers<T, K>(entity); // TODO REMOVE
+      }
     }
   }
 
