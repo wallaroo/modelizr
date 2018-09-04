@@ -44,6 +44,7 @@
     "redux-actions": "^2.6.1"
   },
   "scripts": {
+    "prepare": "tsc --pretty",
     "test": "jest"
   },
   "jest": {
