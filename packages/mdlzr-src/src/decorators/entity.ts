@@ -20,5 +20,5 @@ export default function entity(clazz: any) {
     configurable: false,
     get: cidGetter,
     set: cidSetter
-  })
+  });
 }
