@@ -6,6 +6,10 @@
     "typescript": "^3.0.1",
     "firebase": "^5.4.0"
   },
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "bootstrap": "lerna clean --yes && lerna bootstrap",
     "link": "lerna run link",
