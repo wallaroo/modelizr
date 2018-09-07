@@ -7,8 +7,8 @@
  "author": "wallaroo",
  "license": "ISC",
  "scripts": {
-  "link": "npm link --production",
-  "linkDeps": "npm link react react-dom @types/react @types/react-dom"
+  "link": "yarn link --production",
+  "linkDeps": "yarn link react react-dom @types/react @types/react-dom"
  },
  "repository": {
   "type": "git",

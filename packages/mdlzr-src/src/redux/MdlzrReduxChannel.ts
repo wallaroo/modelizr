@@ -67,6 +67,10 @@ class MdlzrReduxChannel {
   private static store: Store;
   private emitter?: (action: Action<any> | ActionMeta<any, any> | END) => void;
 
+  private constructor() {
+
+  }
+
   public static reducer(state: MdlzrState = defState, action: Action<any> | ActionMeta<any, any>) {
     let ret: MdlzrState;
     if (action.type.startsWith("@@MDLZR/SET")) {
@@ -157,9 +161,9 @@ class MdlzrReduxChannel {
     return mdlzrInstance.changes[ attribute ] || mdlzrInstance.attributes[ attribute ];
   }
 
-  public set<T extends object, K extends keyof T = keyof T>(entity: Entity<T>, attribute: Partial<T>):void;
-  public set<T extends object, K extends keyof T = keyof T>(entity: Entity<T>, attribute: K, value: T[K]):void;
-  public set<T extends object, K extends keyof T = keyof T>(entity: Entity<T>, attribute: K|Partial<T>, value?: T[K]) {
+  public set<T extends object, K extends keyof T = keyof T>(entity: Entity<T>, attribute: Partial<T>): void;
+  public set<T extends object, K extends keyof T = keyof T>(entity: Entity<T>, attribute: K, value: T[K]): void;
+  public set<T extends object, K extends keyof T = keyof T>(entity: Entity<T>, attribute: K | Partial<T>, value?: T[K]) {
     const cid: string = getCid(entity);
     const mdlzrInstance = this.getMdlzrInstance(entity);
     const mdlzrDescriptor = getMdlzrDescriptor(entity);
@@ -170,11 +174,11 @@ class MdlzrReduxChannel {
       id = mdlzrInstance.attributes[ mdlzrDescriptor.idAttribute ]
     }
     const entityClass = getClassName(entity.constructor);
-    const changes:Partial<T> = {};
-    if (typeof attribute == 'string'){
-      changes[attribute] = value;
-    }else{
-      Object.assign(changes,attribute);
+    const changes: Partial<T> = {};
+    if (typeof attribute == 'string') {
+      changes[ attribute ] = value;
+    } else {
+      Object.assign(changes, attribute);
     }
     const setDescriptor = {
       entityClass,
@@ -184,7 +188,7 @@ class MdlzrReduxChannel {
       changes: changes
     };
 
-    for(const attribute of Object.keys(changes) as Array<keyof T>) {
+    for (const attribute of Object.keys(changes) as Array<keyof T>) {
       let oldValue;
       if (mdlzrInstance) {
         oldValue = mdlzrInstance.changes[ attribute ] || mdlzrInstance.attributes[ attribute ] as T[K];
@@ -203,6 +207,7 @@ class MdlzrReduxChannel {
     const mdlzrDescriptor = getMdlzrDescriptor(entity);
     const cid = getCid(entity);
     const fetchPayload = {
+      entityClass,
       entity,
       changes: {} as any,
       attributes: {},
@@ -211,23 +216,25 @@ class MdlzrReduxChannel {
     const resMdlzr = this.getMdlzrInstance(res);
 
     if (!setHash) {
-      Object.assign(fetchPayload.attributes, resMdlzr.attributes, resMdlzr.changes);
-      let id;
-      if (mdlzrDescriptor.idAttribute in fetchPayload.attributes) {
-        id = fetchPayload.attributes[ mdlzrDescriptor.idAttribute ];
-      } else if (resMdlzr) {
-        id = resMdlzr.attributes[ mdlzrDescriptor.idAttribute ]
+      if (resMdlzr) {
+        Object.assign(fetchPayload.attributes, resMdlzr.attributes, resMdlzr.changes);
+        let id;
+        if (mdlzrDescriptor.idAttribute in fetchPayload.attributes) {
+          id = fetchPayload.attributes[ mdlzrDescriptor.idAttribute ];
+        } else if (resMdlzr) {
+          id = resMdlzr.attributes[ mdlzrDescriptor.idAttribute ]
+        }
+        fetchPayload.id = id;
+        this.dispatch(`FETCH/${entityClass}/${cid}`, fetchPayload);
       }
-      fetchPayload.id = id;
-      this.dispatch(`FETCH/${entityClass}/${cid}`, fetchPayload);
     } else {
       const changes = objectDif(this.getAttributes(entity), setHash);
 
       if (changes) {
         this.handleChanges(entity, this.getAttributes(entity), changes);
         res = clone(entity);
-        Object.assign(fetchPayload.attributes, resMdlzr.attributes, changes);
-        Object.assign(fetchPayload.changes, resMdlzr.changes);
+        Object.assign(fetchPayload.attributes, resMdlzr ? resMdlzr.attributes : null, changes);
+        Object.assign(fetchPayload.changes, resMdlzr ? resMdlzr.changes : null);
         for (const key of Object.keys(changes) as Array<keyof T>) {
           delete fetchPayload.changes[ key ];
         }
@@ -264,7 +271,11 @@ class MdlzrReduxChannel {
 
   public getAttributes<T extends object>(model: Entity<T>): IFieldObject<T> {
     const mdlzr = this.getMdlzrInstance(model);
-    return Object.assign({}, mdlzr.attributes, mdlzr.changes) as IFieldObject<T>;
+    const res = {};
+    if (mdlzr) {
+      Object.assign(res, mdlzr.attributes, mdlzr.changes) as IFieldObject<T>;
+    }
+    return res;
   }
 
   /**

@@ -38,7 +38,7 @@
   "redux-actions": "^2.6.1"
  },
  "scripts": {
-  "link": "npm link --production"
+  "link": "yarn link --production"
  },
  "repository": {
   "type": "git",

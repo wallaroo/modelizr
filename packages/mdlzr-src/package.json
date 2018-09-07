@@ -48,6 +48,7 @@
     "test": "jest"
   },
   "jest": {
+    "testURL": "http://localhost/",
     "moduleFileExtensions": [
       "ts",
       "tsx",
