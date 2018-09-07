@@ -25,12 +25,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wallaroo/mdlzr.git"
+    "url": "git@github.com:wallaroo/modelizr.git"
   },
   "author": "wallaroo",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/wallaroo/mdlzr/issues"
+    "url": "https://github.com/wallaroo/modelizr/issues"
   },
-  "homepage": "https://github.com/wallaroo/mdlzr#readme"
+  "homepage": "https://github.com/wallaroo/modelizr#readme"
 }

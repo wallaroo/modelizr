@@ -1,6 +1,6 @@
 {
   "name": "mdlzr-src",
-  "version": "0.1.13-alpha.0",
+  "version": "0.1.12",
   "private": true,
   "main": "src/index.js",
   "author": "wallaroo",
