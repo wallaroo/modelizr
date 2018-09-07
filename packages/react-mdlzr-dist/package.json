@@ -1,6 +1,6 @@
 {
  "name": "react-mdlzr",
- "version": "0.1.12",
+ "version": "0.1.13",
  "description": "HOC to use with mdlzr",
  "main": "index.js",
  "module": "index.js",
@@ -37,5 +37,6 @@
   "hoek": "^5.0.4",
   "lodash.pick": "^4.4.0",
   "utility-types": "^2.0.0"
- }
+ },
+ "gitHead": "2195f5d7a571594522fbf5857dddef86182a69d2"
 }
