@@ -1,14 +1,14 @@
 {
   "lerna": "3.3.0",
-  "npmClient":"yarn",
-  "command":{
-    "publish":{
-      "npmClient":"npm"
+  "npmClient": "yarn",
+  "command": {
+    "publish": {
+      "npmClient": "npm"
     }
   },
   "packages": [
     "packages/*"
   ],
-  "version": "0.1.12",
-  "useWorkspaces":true
+  "version": "0.1.13-alpha.0",
+  "useWorkspaces": true
 }

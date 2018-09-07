@@ -1,6 +1,6 @@
 {
   "name": "mdlzr-src",
-  "version": "0.1.12",
+  "version": "0.1.13-alpha.0",
   "private": true,
   "main": "src/index.js",
   "author": "wallaroo",
@@ -37,11 +37,11 @@
     "lodash.pick": "^4.4.0",
     "lodash.union": "^4.6.0",
     "pluralize": "^7.0.0",
-    "reflect-metadata": "^0.1.10",
-    "rxjs": "^5.5.2",
     "redux": "^4.0.0",
+    "redux-actions": "^2.6.1",
     "redux-saga": "^0.16.0",
-    "redux-actions": "^2.6.1"
+    "reflect-metadata": "^0.1.10",
+    "rxjs": "^5.5.2"
   },
   "scripts": {
     "prepare": "tsc --pretty",
