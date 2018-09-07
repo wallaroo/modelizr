@@ -18,7 +18,7 @@
     "test": "lerna run test --stream",
     "lerna": "lerna",
     "lerna:publish": "lerna publish --conventional-commits --npm-tag=latest",
-    "lerna:publish-next": "lerna publish --yes --canary --npm-tag=next --force-publish",
+    "lerna:publish-next": "lerna publish --yes --npm-tag=next",
     "publish": "npm-run-all -s bootstrap lerna:publish",
     "publish-next": "npm-run-all -s bootstrap lerna:publish-next",
     "prebootstrap": "mergedeps ./packages/react-mdlzr-src ./packages/react-mdlzr-dist && mergedeps ./packages/mdlzr-src ./packages/mdlzr-dist"
