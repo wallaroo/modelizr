@@ -176,7 +176,7 @@ class MdlzrReduxChannel {
     const entityClass = getClassName(entity.constructor);
     const changes: Partial<T> = {};
     if (typeof attribute == 'string') {
-      changes[ attribute ] = value;
+      (changes[ attribute ] as any) = value;
     } else {
       Object.assign(changes, attribute);
     }

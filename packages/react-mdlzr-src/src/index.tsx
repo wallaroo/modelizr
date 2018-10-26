@@ -46,7 +46,7 @@ export default function mdlzr<TStateProps = {}, TOwnProps = {}>(propsbinding: Pr
 
       async getPropsBinding(props: any): Promise<any> {
         if (typeof propsbinding === "function") {
-          return await propsbinding(props as any)
+          return await (propsbinding as any)(props as any)
         } else if (Array.isArray(propsbinding)) {
           return pick(props, propsbinding);
         } else if (propsbinding){
